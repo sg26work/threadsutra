@@ -23,7 +23,8 @@ export default async function handler(req,res){
    let rows=(await find('generic_records',{module:'receipt-validation'})).map(normalize).filter(r=>has(r.receivingValidationCode,b.receivingValidationCode)&&has(r.description,b.description));
    for(const k of boolKeys)if(b[k]===true||b[k]==='true')rows=rows.filter(r=>r[k]);
    rows.sort((a,c)=>text(a.receivingValidationCode).localeCompare(text(c.receivingValidationCode))*(text(b.sord)==='asc'?1:-1));
-   const size=[20,50,100,200].includes(Number(b.rows))?Number(b.rows):20,page=Math.max(1,Number(b.page)||1),records=rows.length,total=Math.ceil(records/size),gridModel=rows.slice((page-1)*size,page*size);return res.json({gridModel,rows:gridModel,page,records,total});
+   const size=[20,50,100,200].includes(Number(b.rows))?Number(b.rows):20,page=Math.max(1,Number(b.page)||1),records=rows.length,receiptValidationDTOs=rows.slice((page-1)*size,page*size);
+   return res.json({gridModel:receiptValidationDTOs,receiptValidationDTOs,rows:size,page,records,record:records,total:records,sidx:text(b.sidx)||'id.inboundCode',sord:text(b.sord)||'desc'});
   }
   if((req.method==='POST'&&b.action==='save')||req.method==='PUT'){
    const error=validate(b);if(error)return res.status(400).json({error});const code=text(b.receivingValidationCode).toUpperCase(),all=await find('generic_records',{module:'receipt-validation'}),existing=all.find(x=>text(x.receiving_validation_code||x.code).toUpperCase()===code);

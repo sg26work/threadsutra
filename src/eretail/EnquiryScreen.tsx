@@ -13,6 +13,7 @@ export type ECol = {
   render?: (r: any) => ReactNode;
   sortable?: boolean;
   align?: 'left' | 'center' | 'right';
+  filterAction?: (value: string, setValue: (value: string) => void) => void;
 };
 
 export type EAction = { label: string; icon?: any; onClick: (filteredRows?: any[]) => void; variant?: 'green' | 'ghost' };
@@ -28,7 +29,7 @@ export function StatusPill({ active }: { active: boolean }) {
 
 export default function EnquiryScreen({
   breadcrumb, cols, rows, loading, actions = [], fields = [], onRowEdit, onRowInfo, selectedIds = [], onSelectionChange,
-  emptyText = 'No records to view', onSearch, onReset, remote, pageSizes = [20, 50, 100, 200], sectionTitle, actionsBeforeResetCount = 0, hideActionBar = false,
+  emptyText = 'No records to view', onSearch, onReset, remote, pageSizes = [20, 50, 100, 200], sectionTitle, actionsBeforeResetCount = 0, hideActionBar = false, initialFilters = {},
 }: {
   breadcrumb: { label: string }[];
   cols: ECol[];
@@ -48,8 +49,9 @@ export default function EnquiryScreen({
   sectionTitle?: string;
   actionsBeforeResetCount?: number;
   hideActionBar?: boolean;
+  initialFilters?: Record<string, string>;
 }) {
-  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [filters, setFilters] = useState<Record<string, string>>(initialFilters);
   const [applied, setApplied] = useState<Record<string, string>>({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -58,7 +60,7 @@ export default function EnquiryScreen({
 
   const setF = (k: string, v: string) => setFilters((f) => ({ ...f, [k]: v }));
   const doSearch = () => { setApplied(filters); setPage(1); onSearch?.(filters, 1, remote?.pageSize || pageSize); };
-  const doReset = () => { setFilters({}); setApplied({}); setPage(1); onReset?.(); };
+  const doReset = () => { setFilters(initialFilters); setApplied({}); setPage(1); onReset?.(); };
 
   const filtered = useMemo(() => {
     let out = remote ? rows : rows.filter((r) => Object.entries(applied).every(([k, v]) => {
@@ -145,7 +147,7 @@ export default function EnquiryScreen({
                   ) : (
                     <div className="flex items-center rounded border border-slate-300 bg-white px-2">
                       <input value={filters[c.key] || ''} onChange={(e) => setF(c.key, e.target.value)} onKeyDown={(e) => e.key === 'Enter' && doSearch()} className="w-full py-1.5 text-xs outline-none" />
-                      <Search size={12} className="text-slate-400" />
+                      {c.filterAction ? <button aria-label={`Select ${c.label}`} type="button" onClick={() => c.filterAction?.(filters[c.key] || '', (value) => setF(c.key, value))} className="px-1 text-sky-700">...</button> : <Search size={12} className="text-slate-400" />}
                     </div>
                   )}
                 </th>
