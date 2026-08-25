@@ -12,25 +12,27 @@ const query = (overrides = {}) => ({ action: 'search', REQ_SEARCH_FLAG: true, ro
 for (const size of [20, 50, 100, 200]) {
   const { response, json } = await send('POST', query({ rows: size }));
   assert.equal(response.status, 200);
-  assert.ok(json.rows.length <= size);
+  assert.equal(json.rows, size);
+  assert.ok(json.gridModel.length <= size);
+  assert.deepEqual(json.pickerZonePreferenceEnq, json.gridModel);
   for (const key of ['rows', 'total', 'page', 'records']) assert.ok(key in json);
 }
 
 const initial = await send('POST', query());
-assert.ok(initial.json.rows.length, 'Picker Zone Preference requires a seeded row');
-const seed = initial.json.rows[0];
-const missingZone = await send('PUT', { id: seed.id, zoneCode: '', pickerId: seed.picker_id });
+assert.ok(initial.json.gridModel.length, 'Picker Zone Preference requires a seeded row');
+const seed = initial.json.gridModel[0];
+const missingZone = await send('POST', { action: 'save', id: seed.id, zoneCode: '', pickerId: seed.picker_id });
 assert.equal(missingZone.response.status, 400);
 assert.equal(missingZone.json.error, 'Zone is mandatory.');
-const missingPicker = await send('PUT', { id: seed.id, zoneCode: seed.zone_code, pickerId: '' });
+const missingPicker = await send('POST', { action: 'save', id: seed.id, zoneCode: seed.zone_code, pickerId: '' });
 assert.equal(missingPicker.response.status, 400);
 assert.equal(missingPicker.json.error, 'Picker Id is Mandatory');
 const preference = `API-${Date.now()}`;
-const updated = await send('PUT', { id: seed.id, zoneCode: seed.zone_code, pickerId: seed.picker_id, zonePreference: preference, status: true });
+const updated = await send('POST', { action: 'save', id: seed.id, zoneCode: seed.zone_code, pickerId: seed.picker_id, zonePreference: preference, status: '1' });
 assert.equal(updated.response.status, 200);
 assert.equal(updated.json.jsonMessage, 'Data saved successfully.');
 const filtered = await send('POST', query({ zoneCode: seed.zone_code, pickerId: seed.picker_id, zonePreference: preference, status: 'Active' }));
-assert.ok(filtered.json.rows.some((row) => row.id === seed.id));
+assert.ok(filtered.json.gridModel.some((row) => row.id === seed.id));
 const importedZone = `IMP${Date.now()}`;
 const imported = await send('POST', { action: 'import', rows: [{ zoneCode: importedZone, pickerId: 'UI-PICKER', zonePreference: 'Imported Preference', status: 'Inactive' }] });
 assert.equal(imported.response.status, 201);
@@ -74,7 +76,7 @@ try {
   assert.equal(await page.locator('thead tr').nth(1).locator('input').first().inputValue(), '');
   for (const size of ['20', '50', '100', '200']) await page.getByLabel('Records per Page').selectOption(size);
   await page.getByRole('button', { name: 'Import', exact: true }).click();
-  await page.getByText('CSV columns: Zone Code, Picker Id, Zone Preference, Status', { exact: true }).waitFor();
+  await page.waitForURL('**/app/admin/common-import?externalImportType=69');
   assert.deepEqual(errors, []);
   console.log('PASS Picker Zone Preference: live request/response model, filtering, reset, update, import, audit, pagination, validation, and clean browser state.');
 } finally {
