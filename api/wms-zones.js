@@ -43,11 +43,12 @@ export default async function handler(req, res) {
       const direction = text(body.sord) === 'desc' ? -1 : 1;
       rows.sort((a, b) => text(a.zone_code).localeCompare(text(b.zone_code)) * direction);
       const size = [20, 50, 100, 200].includes(Number(body.rows)) ? Number(body.rows) : 20, page = Math.max(1, Number(body.page) || 1), records = rows.length, total = Math.ceil(records / size), gridModel = rows.slice((page - 1) * size, page * size);
-      return res.status(200).json({ gridModel, rows: gridModel, page, records, total });
+      return res.status(200).json({ gridModel, zoneDTOList: gridModel, rows: size, page, records, total });
     }
     if (req.method === 'POST' && body.action === 'save') {
       const zoneCode = text(body.zoneCode).toUpperCase();
       if (!zoneCode) return res.status(400).json({ error: 'Please enter the valid zone code.' });
+      if (!/^[A-Z0-9]+$/.test(zoneCode)) return res.status(400).json({ error: 'Please enter AlphaNumerics only' });
       if (zoneCode.length > 10) return res.status(400).json({ error: 'Zone Code cannot exceed 10 characters.' });
       if (text(body.descr).length > 100) return res.status(400).json({ error: 'Zone Description cannot exceed 100 characters.' });
       if (!text(body.locCode)) return res.status(400).json({ error: 'Please select location.' });

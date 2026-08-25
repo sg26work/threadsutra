@@ -16,7 +16,7 @@ export type ECol = {
 };
 
 export type EAction = { label: string; icon?: any; onClick: (filteredRows?: any[]) => void; variant?: 'green' | 'ghost' };
-export type EField = { key: string; label: string; type?: 'text' | 'select'; options?: string[] };
+export type EField = { key: string; label: string; type?: 'text' | 'select'; options?: string[]; disabled?: boolean; value?: string };
 
 export function StatusPill({ active }: { active: boolean }) {
   return (
@@ -114,7 +114,7 @@ export default function EnquiryScreen({
 
       {fields.length > 0 && <section className="mb-3 grid gap-3 border bg-white p-4 md:grid-cols-3">
         {fields.map((field) => <label key={field.key} className="text-xs text-slate-600">{field.label}
-          {field.type === 'select' ? <select aria-label={field.label} className="inp mt-1" value={filters[field.key] || ''} onChange={(event) => setF(field.key, event.target.value)}>{(field.options || []).map((option) => <option key={option} value={option === '--- Select ---' ? '' : option}>{option}</option>)}</select> : <input aria-label={field.label} className="inp mt-1" value={filters[field.key] || ''} onChange={(event) => setF(field.key, event.target.value)} />}
+          {field.type === 'select' ? <select aria-label={field.label} className="inp mt-1" disabled={field.disabled} value={field.value ?? filters[field.key] ?? ''} onChange={(event) => setF(field.key, event.target.value)}>{(field.options || []).map((option) => <option key={option} value={option === '--- Select ---' ? '' : option}>{option}</option>)}</select> : <input aria-label={field.label} className="inp mt-1" disabled={field.disabled} value={field.value ?? filters[field.key] ?? ''} onChange={(event) => setF(field.key, event.target.value)} />}
         </label>)}
       </section>}
 
