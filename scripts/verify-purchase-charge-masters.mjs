@@ -1,0 +1,21 @@
+import { chromium } from 'playwright';
+
+const baseUrl = process.env.ERETAIL_BASE_URL || 'http://127.0.0.1:3011';
+const browser = await chromium.launch({ headless: true }); const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+const errors = []; page.on('pageerror', (e) => errors.push(e.message)); page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); }); page.on('response', (r) => { if (r.url().includes('/api/') && r.status() >= 500) errors.push(`${r.status()} ${r.url()}`); });
+try {
+  await page.goto(baseUrl); await page.evaluate(() => localStorage.setItem('vin_user', JSON.stringify({ username: 'charge-verifier' })));
+  await page.goto(`${baseUrl}/app/m/purchase-charge`, { waitUntil: 'domcontentloaded' }); await page.getByText('Purchase Charge Masters', { exact: true }).first().waitFor();
+  const sizes = (await page.getByRole('combobox', { name: 'Records per Page' }).locator('option').allTextContents()).map((value) => value.trim()); if (sizes.join() !== '20,50,100,200') throw new Error(`Page sizes mismatch: ${sizes.join('|')}`);
+  await page.locator('#gs_chargeId').fill('1'); await page.locator('#gs_clientId').fill('0');
+  const requestPromise = page.waitForRequest((r) => r.url().endsWith('/api/purchase-charge-masters') && r.method() === 'POST'); await page.getByRole('button', { name: 'Search', exact: true }).click(); const payload = (await requestPromise).postDataJSON(); if (payload.rows !== 20 || payload.page !== 1 || payload.sidx !== 'updatedDate' || payload.sord !== 'desc' || payload.chargeId !== '1' || payload.clientId !== '0' || payload.REQ_SEARCH_FLAG !== true) throw new Error('Search payload mismatch.');
+  await page.locator('#gs_name').fill('reset me'); await page.getByRole('button', { name: 'Reset', exact: true }).click(); if (await page.locator('#gs_chargeId').inputValue() || await page.locator('#gs_clientId').inputValue() || await page.locator('#gs_name').inputValue() || !await page.getByText('No records to view').count()) throw new Error('Reset mismatch.');
+  await page.getByRole('button', { name: 'Add New', exact: true }).click(); await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.getByText('Enter Name for Charge Master', { exact: true }).waitFor();
+  const suffix = Date.now().toString().slice(-7); const master = `Freight ${suffix}`; await page.locator('#name').fill(master); await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.getByText('Please add charge data alongside creating Charge Master', { exact: true }).waitFor();
+  await page.getByLabel('Charge Name').fill('Freight'); await page.getByLabel('Charge Type').selectOption('1'); await page.getByLabel('Operand').fill('125'); await page.getByRole('button', { name: 'Add Charge', exact: true }).click();
+  const savePromise = page.waitForRequest((r) => r.url().endsWith('/api/purchase-charge-masters') && r.method() === 'POST' && !r.postDataJSON()?.REQ_SEARCH_FLAG); await page.getByRole('button', { name: 'Save', exact: true }).click(); const saveRequest = await savePromise; const saved = await (await saveRequest.response()).json(); if (saved.name !== master || saved.charges[0].chargeName !== 'Freight') throw new Error('Save contract mismatch.');
+  await page.locator('#gs_name').fill(master); await page.getByRole('button', { name: 'Search', exact: true }).click(); await page.getByRole('button', { name: saved.chargeId, exact: true }).click(); if (await page.locator('#name').inputValue() !== master || !await page.getByText('125', { exact: true }).count() || !await page.getByRole('columnheader', { name: 'Charge Line ID', exact: true }).count() || !await page.getByText('1', { exact: true }).count()) throw new Error('Persisted record mismatch.');
+  await page.getByRole('button', { name: 'Remove Charge', exact: true }).click(); await page.getByText('Select the charge(s) that you would like to remove', { exact: true }).waitFor();
+  if (errors.length) throw new Error(`Browser/API errors: ${errors.join(' | ')}`);
+  console.log('PASS Purchase Charge Masters: API search, reset, pagination sizes, validation, add/save, reopen persistence, and remove selection guard.');
+} finally { await browser.close(); }

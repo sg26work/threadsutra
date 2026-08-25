@@ -1,0 +1,19 @@
+# Render Blueprint — deploy the whole app as one Node web service.
+# In Render: New + -> Blueprint -> connect this repo. Render reads this file,
+# runs the build, and starts the server. Set MONGODB_URI in the Render
+# dashboard (marked sync:false so it is NOT committed to git).
+services:
+  - type: web
+    name: vin-eretail
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.1
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB
+        value: eretail

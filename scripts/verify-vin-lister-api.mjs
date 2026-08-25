@@ -1,0 +1,14 @@
+const base = process.env.BASE_URL || 'http://127.0.0.1:3002';
+const call = async (path, method = 'GET', body) => { const response = await fetch(`${base}${path}`, body ? { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : { method }); const json = await response.json(); if (!response.ok) throw new Error(json.error); return json; };
+const meta = await call('/api/vin-lister?action=meta');
+if (!meta.channels.includes('Amazon') || !meta.categories.includes('Fashion & Accessories')) throw new Error('PDF marketplace/category metadata unavailable');
+const imported = await call('/api/vin-lister', 'POST', { action: 'product-import', rows: [{ sku_code: 'PDF-VERIFY-001', product_name: 'PDF Verification Product', category: 'Fashion & Accessories' }] });
+if (imported.created !== 1) throw new Error('Product import did not persist');
+const products = await call('/api/vin-lister'); const product = products.find((row) => row.sku_code === 'PDF-VERIFY-001');
+await call('/api/vin-lister', 'POST', { action: 'assign-marketplace', id: product.id, channel: 'Amazon' });
+await call('/api/vin-lister', 'POST', { action: 'price-import', channel: 'Amazon', rows: [{ sku_code: product.sku_code, price: 100 }] });
+const output = await call('/api/vin-lister', 'POST', { action: 'export', export_type: 'Product by Export Profile', channel: 'Amazon', category: 'Fashion & Accessories' });
+if (!output.rows.some((row) => row.id === product.id)) throw new Error('Export relationship missing');
+const log = await call('/api/vin-lister', 'POST', { action: 'sku-push', id: product.id, channel: 'Amazon' });
+if (log.status !== 'Processed') throw new Error('SKU push log missing');
+console.log('Vin Lister API verification passed');

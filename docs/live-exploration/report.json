@@ -1,0 +1,20 @@
+{
+  "exploredAt": "2026-08-22T09:12:06.685Z",
+  "loginUrl": "https://demo.vineretail.com/eRetailWeb/eRetailLogin.action?popup=true",
+  "pages": [],
+  "navigation": {
+    "sidebarItems": [],
+    "headerControls": [],
+    "megaMenus": []
+  },
+  "errors": [
+    {
+      "type": "dialog",
+      "message": "You are already logged in from IP 103.39.117.221, 103.39.117.221/17.225.20.29 Do you really want to end previous session and start new Login session?"
+    },
+    {
+      "type": "fatal",
+      "message": "snap is not a function"
+    }
+  ]
+}

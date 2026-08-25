@@ -1,0 +1,51 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Environment — NEVER commit real secrets. .env.example is committed as a template.
+.env
+.env.local
+.env.*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.vite-source-tags.js
+.vercel
+.tscache/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Browser automation/profile data
+browser-profile/
+
+# Build output
+dist/
+.vite/
+
+# Environment/secrets
+.env
+.env.*
+!.env.example
+
+# OS/editor files
+.DS_Store

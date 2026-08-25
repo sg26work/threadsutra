@@ -1,0 +1,36 @@
+import { chromium } from 'playwright';
+
+const baseUrl = process.env.ERETAIL_BASE_URL || 'http://127.0.0.1:3011';
+const browser = await chromium.launch({ headless: true }); const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+const runtimeErrors = []; const apiErrors = [];
+page.on('pageerror', (error) => runtimeErrors.push(error.message)); page.on('console', (message) => { if (message.type() === 'error') runtimeErrors.push(message.text()); }); page.on('response', (response) => { if (response.url().includes('/api/') && response.status() >= 500) apiErrors.push(`${response.status()} ${response.url()}`); }); page.on('dialog', (dialog) => dialog.accept());
+try {
+  await page.goto(baseUrl, { waitUntil: 'domcontentloaded' }); await page.evaluate(() => localStorage.setItem('vin_user', JSON.stringify({ username: 'promotion-verifier' })));
+  await page.goto(`${baseUrl}/app/m/vendor-promotions`, { waitUntil: 'domcontentloaded' }); await page.getByText('Vendor Promotions', { exact: true }).first().waitFor();
+  const sizes = await page.getByRole('combobox', { name: 'Records per Page' }).locator('option').allTextContents(); if (JSON.stringify(sizes) !== JSON.stringify(['20','50','100','200'])) throw new Error('Vendor Promotions page sizes mismatch.');
+  const statuses = await page.locator('#gs_status option').allTextContents(); if (JSON.stringify(statuses) !== JSON.stringify(['--- Select ---','Pending','Confirmed','Cancelled'])) throw new Error('Vendor Promotions status options mismatch.');
+  const searchRequest = page.waitForRequest((request) => request.url().endsWith('/api/vendor-promotions') && request.method() === 'POST'); await page.getByRole('button', { name: 'Search', exact: true }).click(); const initialPayload = (await searchRequest).postDataJSON(); if (initialPayload.rows !== 20 || initialPayload.page !== 1 || initialPayload.sidx !== 'discKey' || initialPayload.sord !== 'desc' || initialPayload.REQ_SEARCH_FLAG !== true) throw new Error('Vendor Promotions search payload mismatch.');
+  await page.getByRole('button', { name: 'Advanced Search', exact: true }).click(); await page.locator('#gs_promoCode').fill('SHOULD-RESET'); await page.getByRole('button', { name: 'Reset', exact: true }).click(); if (await page.locator('#gs_vendorCode').inputValue() || await page.locator('#gs_promoCode').count()) throw new Error('Vendor Promotions reset mismatch.');
+  await page.getByRole('button', { name: 'Add New', exact: true }).click(); await page.getByText('Vendor Promotion Create/Edit', { exact: true }).first().waitFor();
+  if (await page.locator('#vendorCode').getAttribute('readonly') !== null) throw new Error('Vendor Code must be editable as observed live.');
+  await page.locator('#conditionOn').selectOption('4');
+  if (!await page.locator('#brand').count() || await page.getByRole('button', { name: 'Open condition picker' }).count()) throw new Error('Brand must use the live dropdown rather than a picker.');
+  const discountOnOptions = await page.getByLabel('Discount On').locator('option').allTextContents();
+  if (JSON.stringify(discountOnOptions) !== JSON.stringify(['--- Select ---','Cost','MRP'])) throw new Error('Discount On options mismatch.');
+  await page.locator('#conditionOn').selectOption('1');
+  await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.getByText('Please select vendor code', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Open vendor picker' }).click(); await page.getByLabel('Picker search').fill('VEN001'); await page.getByRole('button', { name: /VEN001/ }).click();
+  const suffix = Date.now().toString().slice(-7); const promoCode = `VP${suffix}`; await page.locator('#promoCode').fill(promoCode); await page.locator('#promoName').fill(`Vendor Promo ${suffix}`); await page.getByLabel('Start Date').fill('2026-08-25'); await page.getByLabel('End Date').fill('2026-09-25');
+  await page.locator('#conditionOn').selectOption('3'); await page.getByRole('button', { name: 'Open condition picker' }).click(); await page.getByLabel('Picker search').fill('TSHIRT-BLK-M'); await page.getByRole('button', { name: /TSHIRT-BLK-M/ }).click(); await page.locator('#discVal').fill('5'); await page.getByRole('button', { name: 'Add', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Location Link', exact: true }).click(); await page.getByText('Link To All', { exact: true }).click();
+  const saveRequest = page.waitForRequest((request) => request.url().endsWith('/api/vendor-promotions') && request.method() === 'POST' && request.postDataJSON()?.REQ_SEARCH_FLAG !== true); await page.getByRole('button', { name: 'Save', exact: true }).click(); const savedRequest = await saveRequest; const savedPayload = savedRequest.postDataJSON(); const savedResponse = await savedRequest.response(); const saved = await savedResponse.json(); if (savedPayload.status !== '1' || savedPayload.lines.length !== 1 || !savedPayload.linkToAll) throw new Error('Vendor Promotions save contract mismatch.'); await page.getByText('Record Saved Successfully', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Audit', exact: true }).click(); await page.getByText('Local User', { exact: true }).first().waitFor(); await page.getByRole('button').filter({ has: page.locator('svg') }).last().click().catch(() => {});
+  await page.getByRole('button', { name: 'Confirm', exact: true }).click(); await page.getByText('Records confirmed successfully', { exact: true }).waitFor();
+  await page.getByRole('main').getByRole('button', { name: 'Vendor Promotions', exact: true }).click(); await page.getByRole('button', { name: 'Advanced Search', exact: true }).click(); await page.locator('#gs_promoCode').fill(promoCode); await page.getByRole('button', { name: 'Search', exact: true }).click(); const key = String(saved.discKey); await page.locator('tbody').getByRole('button', { name: key, exact: true }).click(); await page.locator('#promoCode').waitFor();
+  if (await page.locator('#promoCode').inputValue() !== promoCode || await page.getByText('Confirmed', { exact: true }).count() === 0) throw new Error('Vendor Promotion confirm/reopen persistence failed.');
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click(); await page.getByText('Records cancelled successfully', { exact: true }).waitFor();
+  const persisted = await page.request.get(`${baseUrl}/api/vendor-promotions?discKey=${key}`); const persistedBody = await persisted.json(); if (persistedBody.statusText !== 'Cancelled' || persistedBody.lines[0].conditionCode !== 'TSHIRT-BLK-M') throw new Error('Vendor Promotion cancel/line persistence failed.');
+  const stale = await page.request.post(`${baseUrl}/api/vendor-promotions`, { data: { ...persistedBody, rowVersion: 1, status: '1' } }); if (stale.status() !== 409) throw new Error('Vendor Promotion row-version protection failed.');
+  if (runtimeErrors.length || apiErrors.length) throw new Error(`Browser/API errors: ${[...runtimeErrors, ...apiErrors].join(' | ')}`);
+  console.log('PASS Vendor Promotions: enquiry, API search semantics, reset, vendor/SKU pickers, lines, locations, save, audit, confirm, cancel, pagination, and reopen persistence.');
+} finally { await browser.close(); }

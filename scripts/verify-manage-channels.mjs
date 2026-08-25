@@ -1,0 +1,15 @@
+import { chromium } from 'playwright';
+const baseUrl = process.env.ERETAIL_BASE_URL || 'http://127.0.0.1:3011'; const browser = await chromium.launch({ headless: true }); const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } }); const errors = [];
+page.on('pageerror', (e) => errors.push(e.message)); page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); }); page.on('response', (r) => { if (r.url().includes('/api/') && r.status() >= 500) errors.push(`${r.status()} ${r.url()}`); });
+try {
+  await page.goto(baseUrl); await page.evaluate(() => localStorage.setItem('vin_user', JSON.stringify({ username: 'channel-verifier' }))); await page.goto(`${baseUrl}/app/channels`, { waitUntil: 'domcontentloaded' }); await page.getByRole('button', { name: 'Search', exact: true }).waitFor();
+  const sizes = await page.getByRole('combobox', { name: 'Records per Page' }).locator('option').allTextContents(); if (sizes.join() !== '20,50,100,200') throw new Error('Page sizes mismatch.');
+  await page.getByText('Channel Code').locator('..').getByRole('textbox').fill('AMZ');
+  const waiting = page.waitForRequest((r) => r.url().endsWith('/api/channels') && r.method() === 'POST' && r.postDataJSON()?.REQ_SEARCH_FLAG === true); await page.getByRole('button', { name: 'Search', exact: true }).click(); const request = await waiting; const payload = request.postDataJSON(); const response = await request.response(); const result = await response.json(); const filters = JSON.parse(payload.vnfDataString);
+  if (payload.key !== 'CHANNELENQUIRYSEARCH' || payload.rows !== 20 || payload.page !== 1 || payload.sidx !== '' || payload.sord !== 'desc' || filters.param1 !== 'AMZ' || filters.param4 !== '1' || filters.param7 !== '1' || !Array.isArray(result.gridModel) || !('records' in result) || !('total' in result)) throw new Error('Manage Channels search contract mismatch.');
+  const resetResponse = page.waitForResponse((r) => r.url().endsWith('/api/channels') && r.request().method() === 'POST'); await page.getByRole('button', { name: 'Reset', exact: true }).click(); await resetResponse;
+  await page.getByRole('button', { name: 'Add New', exact: true }).click(); await page.getByText('Select Marketplace to Integrate').waitFor(); await page.getByRole('button', { name: /AJIO B2C/ }).click(); await page.getByText('Add New Channel').waitFor();
+  const invalid = await page.request.post(`${baseUrl}/api/channels`, { data: { channel_code: '', channel_name: '' } }); if (invalid.status() !== 400) throw new Error('Required validation mismatch.');
+  const percent = await page.request.post(`${baseUrl}/api/channels`, { data: { channel_code: 'VERIFY-NO-SAVE', channel_name: 'Verifier', inventory_percentage: 101 } }); if (percent.status() !== 400) throw new Error('Inventory percentage validation mismatch.');
+  if (errors.length) throw new Error(errors.join(' | ')); console.log('PASS Manage Channels: dedicated commonJsonSearch-equivalent API, live filters/actions, response model, reset, and 20/50/100/200 pagination.');
+} finally { await browser.close(); }
