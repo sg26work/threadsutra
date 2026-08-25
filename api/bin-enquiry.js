@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     const size = [20, 50, 100, 200].includes(Number(body.rows)) ? Number(body.rows) : 20;
     const page = Math.max(1, Number(body.page) || 1), records = rows.length, total = Math.ceil(records / size);
     const gridModel = rows.slice((page - 1) * size, page * size);
-    return res.status(200).json({ gridModel, rows: gridModel, page, records, total });
+    return res.status(200).json({ gridModel, binMasterDTOs: gridModel, rows: size, page: records ? page : 0, records, total });
   } catch (error) {
     console.error('Bin Enquiry error:', error);
     return res.status(500).json({ error: error.message });
