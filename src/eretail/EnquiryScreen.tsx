@@ -17,7 +17,7 @@ export type ECol = {
 };
 
 export type EAction = { label: string; icon?: any; onClick: (filteredRows?: any[]) => void; variant?: 'green' | 'ghost' };
-export type EField = { key: string; label: string; type?: 'text' | 'select'; options?: string[]; disabled?: boolean; value?: string };
+export type EField = { key: string; label: string; type?: 'text' | 'select' | 'checkbox'; options?: string[]; disabled?: boolean; value?: string; checked?: boolean; onChange?: (value: string | boolean) => void; filterAction?: () => void };
 
 export function StatusPill({ active }: { active: boolean }) {
   return (
@@ -116,7 +116,7 @@ export default function EnquiryScreen({
 
       {fields.length > 0 && <section className="mb-3 grid gap-3 border bg-white p-4 md:grid-cols-3">
         {fields.map((field) => <label key={field.key} className="text-xs text-slate-600">{field.label}
-          {field.type === 'select' ? <select aria-label={field.label} className="inp mt-1" disabled={field.disabled} value={field.value ?? filters[field.key] ?? ''} onChange={(event) => setF(field.key, event.target.value)}>{(field.options || []).map((option) => <option key={option} value={option === '--- Select ---' ? '' : option}>{option}</option>)}</select> : <input aria-label={field.label} className="inp mt-1" disabled={field.disabled} value={field.value ?? filters[field.key] ?? ''} onChange={(event) => setF(field.key, event.target.value)} />}
+          {field.type === 'select' ? <select aria-label={field.label} className="inp mt-1" disabled={field.disabled} value={field.value ?? filters[field.key] ?? ''} onChange={(event) => field.onChange ? field.onChange(event.target.value) : setF(field.key, event.target.value)}>{(field.options || []).map((option) => <option key={option} value={option === '--- Select ---' ? '' : option}>{option}</option>)}</select> : field.type === 'checkbox' ? <input aria-label={field.label} className="ml-3 mt-2" type="checkbox" checked={field.checked} onChange={(event) => field.onChange?.(event.target.checked)} /> : <div className="mt-1 flex"><input aria-label={field.label} className="inp rounded-r-none" disabled={field.disabled} value={field.value ?? filters[field.key] ?? ''} onChange={(event) => field.onChange ? field.onChange(event.target.value) : setF(field.key, event.target.value)} />{field.filterAction && <button aria-label={`Open ${field.label} picker`} type="button" className="rounded-r border px-3 text-sky-700" onClick={field.filterAction}>...</button>}</div>}
         </label>)}
       </section>}
 

@@ -1,2 +1,91 @@
-import{useEffect,useState}from'react';import{useNavigate}from'react-router-dom';import{Plus,Search as SearchIcon}from'lucide-react';import Shell from'../Shell';import EnquiryScreen from'../EnquiryScreen';import{Toast}from'../parts';import Modal from'../../components/Modal';import OrderGrid,{type GCol}from'../OrderGrid';import{apiGet,apiSend}from'../../lib/api';
-export default function InboundEnquiry(){const nav=useNavigate(),[meta,setMeta]=useState<any>({}),[rows,setRows]=useState<any[]>([]),[selected,setSelected]=useState<number[]>([]),[pager,setPager]=useState({page:0,total:0,records:0,pageSize:20}),[loading,setLoading]=useState(false),[last,setLast]=useState<any>({}),[advanced,setAdvanced]=useState<any>({}),[advOpen,setAdvOpen]=useState(false),[vendorOpen,setVendorOpen]=useState(false),[toast,setToast]=useState<any>(null);useEffect(()=>{apiGet('/api/inbound-enquiry').then(setMeta).catch((e:any)=>setToast({msg:e.message,type:'err'}))},[]);async function search(f:any={},page=1,size=pager.pageSize){const filters={...advanced,...f};setLast(filters);setLoading(true);try{const r:any=await apiSend('/api/inbound-enquiry','POST',{action:'search',REQ_SEARCH_FLAG:true,rows:size,page,sidx:'inbound0_.crtDate',sord:'desc',locationCode:'UWH',clientId:'0',...filters});setRows(r.inboundList);setPager({page:r.page,total:r.total,records:r.records,pageSize:size});setSelected([])}catch(e:any){setToast({msg:e.message,type:'err'});setRows([])}finally{setLoading(false)}}function reset(){setRows([]);setSelected([]);setAdvanced({});setLast({});setPager({page:0,total:0,records:0,pageSize:20});setToast(null)}async function act(action:string){try{const r:any=await apiSend('/api/inbound-enquiry','POST',{action,id:selected[0]});setToast({msg:r.jsonMessage,type:'ok'});nav(r.target)}catch(e:any){setToast({msg:e.message,type:'err'})}}const cols:any[]=[{key:'clientId',label:'Client',filter:'select',options:['0-DummyClient']},{key:'inboundNo',label:'Inbound No',render:(r:any)=><button className="font-semibold text-sky-700" onClick={()=>nav(`/app/grn?inboundNo=${encodeURIComponent(r.inboundNo)}`)}>{r.inboundNo}</button>},{key:'extInboundCode',label:'Ext Inbound No'},{key:'transferNo',label:'STO No'},{key:'asnNumber',label:'ASN No'},{key:'poNo',label:'PO No'},{key:'GRNNo',label:'GRN No'},{key:'createdDate',label:'Creation Date'},{key:'displayInboundType',label:'Inbound Type',filter:'select',options:(meta.inboundTypes||[]).map((x:any)=>x[1])},{key:'invoiceNo',label:'Invoice No'},{key:'vendorCode',label:'vendor',render:(r:any)=><button onClick={()=>setVendorOpen(true)} className="text-sky-700">{r.vendorCode}</button>},{key:'expQty',label:'Exp Qty'},{key:'rcvQty',label:'Receieved Qty'},{key:'status',label:'Status',filter:'select',options:(meta.statuses||[]).map((x:any)=>x[1])},{key:'qcStatus',label:'QC Status',filter:'select',options:['in QC','QC Done']},{key:'inboundLoc',label:'Inbound Location',filter:'select',options:['UWH-JX Karawaci']},{key:'extCustReturnNo',label:'Ext Return No'},{key:'extInvoiceNo',label:'Ext Invoice No'}],actions:any[]=[{label:'Advance Search',icon:SearchIcon,onClick:()=>setAdvOpen(true)},{label:'Add New',icon:Plus,onClick:()=>nav('/app/r/inbound-realtime')},{label:'QC',onClick:()=>void act('qc')},{label:'PutAway',onClick:()=>void act('putaway')}],advFields=[['fromInboundNo','Inbound No'],['fromGRNNo','GRN No'],['vendorCode','Vendor'],['fromCreatedDate','From Creation Date'],['toCreatedDate','To Creation Date'],['fromGRNDate','From GRN Date'],['toGRNDate','To GRN Date'],['PONo','PO No'],['fromInvoiceNo','Invoice No'],['skuCode','SKU Code'],['orderNo','Order No'],['lotCode','Lot No'],['usnNo','USN No'],['inbLpn','LPN No'],['ExtCustReturnNo','Ext Return No'],['ExtInvoiceNo','Ext Invoice No']];const vendorCols:GCol[]=[{key:'code',label:'Vendor Code'},{key:'name',label:'Vendor Name'}];return <Shell active="wms" breadcrumb="WMS > Inbound > Inbound Enquiry" openScreens={[{label:'Inbound Enquiry',to:'#'}]}><EnquiryScreen breadcrumb={[{label:'WMS'},{label:'Inbound'},{label:'Inbound Enquiry'}]} cols={cols} fields={[]} rows={rows} loading={loading} remote={pager} pageSizes={[20,50,100,200]} selectedIds={selected} onSelectionChange={ids=>setSelected(ids.slice(-1))} onSearch={search} onReset={reset} actions={actions}/><Modal title="Advance Search" open={advOpen} onClose={()=>setAdvOpen(false)} wide><div className="grid gap-3 md:grid-cols-3">{advFields.map(([k,l])=><label key={k} className="text-xs text-slate-600">{l}<input aria-label={l} type={k.includes('Date')?'date':'text'} className="inp mt-1" value={advanced[k]||''} onChange={e=>setAdvanced((x:any)=>({...x,[k]:e.target.value}))}/></label>)}<label className="text-xs text-slate-600">Status<select aria-label="Advanced Status" className="inp mt-1" value={advanced.status||''} onChange={e=>setAdvanced((x:any)=>({...x,status:e.target.value}))}><option value="">--- Select ---</option>{(meta.statuses||[]).map((x:any)=><option key={x[0]} value={x[0]}>{x[1]}</option>)}</select></label><label className="text-xs text-slate-600">Inbound Type<select aria-label="Advanced Inbound Type" className="inp mt-1" value={advanced.inboundType||''} onChange={e=>setAdvanced((x:any)=>({...x,inboundType:e.target.value}))}><option value="">--- Select ---</option>{(meta.inboundTypes||[]).map((x:any)=><option key={x[0]} value={x[0]}>{x[1]}</option>)}</select></label></div><div className="mt-4 flex justify-end gap-2"><button className="rounded border px-3 py-2" onClick={()=>setAdvOpen(false)}>Close</button><button className="rounded bg-amber-500 px-3 py-2 text-white" onClick={()=>{setAdvOpen(false);void search(advanced,1,pager.pageSize)}}>Search</button></div></Modal><Modal title="Vendor" open={vendorOpen} onClose={()=>setVendorOpen(false)}><OrderGrid cols={vendorCols} rows={meta.vendors||[]} empty="No vendors to view"/></Modal>{toast&&<Toast {...toast} onClose={()=>setToast(null)}/>}</Shell>}
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Search as SearchIcon } from 'lucide-react';
+import Shell from '../Shell';
+import EnquiryScreen, { type EField } from '../EnquiryScreen';
+import { Toast } from '../parts';
+import Modal from '../../components/Modal';
+import OrderGrid, { type GCol } from '../OrderGrid';
+import { apiGet, apiSend } from '../../lib/api';
+
+const dmy = (d: Date) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+const iso = (v: string) => { const [d, m, y] = v.split('/'); return y && m && d ? `${y}-${m}-${d}` : v; };
+const today = new Date(), sixtyDaysAgo = new Date(Date.now() - 60 * 86400000);
+const creationRange = `${dmy(sixtyDaysAgo)} - ${dmy(today)}`;
+const initialFilters = { createdDate: creationRange, inboundLoc: 'UWH-JX Karawaci' };
+const blankAdvanced: any = { fromInboundNo: '', fromGRNNo: '', vendorCode: '', createdDate: '', GRNDate: '', locationCode: 'UWH', PONo: '', status: '', fromInvoiceNo: '', inboundType: '', isBarCode: true, skuCode: '', orderNo: '', lotCode: '', lotNoArr: '', mhierachyCode: '', hierarchyCode: '', usnNo: '', inbLpn: '' };
+
+export default function InboundEnquiry() {
+  const nav = useNavigate();
+  const [meta, setMeta] = useState<any>({}), [rows, setRows] = useState<any[]>([]), [selected, setSelected] = useState<number[]>([]);
+  const [pager, setPager] = useState({ page: 0, total: 0, records: 0, pageSize: 20 }), [loading, setLoading] = useState(false);
+  const [advanced, setAdvanced] = useState<any>({ ...blankAdvanced }), [advOpen, setAdvOpen] = useState(false);
+  const [picker, setPicker] = useState<'vendor' | 'lot' | 'hierarchy' | null>(null), [lotText, setLotText] = useState('');
+  const [vendorFilterSetter, setVendorFilterSetter] = useState<null | ((value: string) => void)>(null);
+  const [toast, setToast] = useState<any>(null);
+  useEffect(() => { apiGet('/api/inbound-enquiry').then(setMeta).catch((e: any) => setToast({ msg: e.message, type: 'err' })); }, []);
+
+  const setAdv = (key: string, value: any) => setAdvanced((x: any) => ({ ...x, [key]: value }));
+  async function search(f: any = initialFilters, page = 1, size = pager.pageSize) {
+    const filters = { ...advanced, ...f }, created = String(advanced.createdDate || f.createdDate || creationRange).split(' - '), grn = String(advanced.GRNDate || '').split(' - ');
+    setLoading(true);
+    try {
+      const r: any = await apiSend('/api/inbound-enquiry', 'POST', {
+        action: 'search', REQ_SEARCH_FLAG: true, doFetchCount: false, rows: size, page, sidx: 'inbound0_.crtDate', sord: 'desc',
+        locationCode: 'UWH', clientId: '0', ...filters,
+        fromCreatedDate: iso(created[0] || ''), toCreatedDate: iso(created[1] || ''),
+        fromGRNDate: iso(grn[0] || ''), toGRNDate: iso(grn[1] || ''),
+        fromInboundNo: f.inboundNo || advanced.fromInboundNo || '', fromExtInboundNo: f.extInboundCode || '', transferNo: f.transferNo || '',
+        asnNumber: f.asnNumber || '', PONo: f.poNo || advanced.PONo || '', fromGRNNo: f.GRNNo || advanced.fromGRNNo || '',
+        fromInvoiceNo: f.invoiceNo || advanced.fromInvoiceNo || '', vendorCode: f.vendorCode || advanced.vendorCode || '',
+        inboundType: f.displayInboundType || advanced.inboundType || '', status: f.status || advanced.status || '', qcStatus: f.qcStatus || '',
+        ExtCustReturnNo: f.extCustReturnNo || '', ExtInvoiceNo: f.extInvoiceNo || '', inbLpn: advanced.inbLpn || '',
+      });
+      setRows(r.inboundList || []); setPager({ page: r.page, total: r.total, records: r.records, pageSize: r.rows }); setSelected([]);
+    } catch (e: any) { setToast({ msg: e.message, type: 'err' }); setRows([]); setPager({ page: 0, total: 0, records: 0, pageSize: size }); }
+    finally { setLoading(false); }
+  }
+  function reset() { setRows([]); setSelected([]); setAdvanced({ ...blankAdvanced }); setPager({ page: 0, total: 0, records: 0, pageSize: 20 }); setToast(null); }
+  async function act(action: string) { try { const r: any = await apiSend('/api/inbound-enquiry', 'POST', { action, id: selected[0] }); setToast({ msg: r.jsonMessage, type: 'ok' }); nav(r.target); } catch (e: any) { setToast({ msg: e.message, type: 'err' }); } }
+
+  const cols: any[] = [
+    { key: 'inboundNo', label: 'Inbound No', render: (r: any) => <button className="font-semibold text-sky-700" onClick={() => nav(`/app/r/inbound-realtime?inboundNo=${encodeURIComponent(r.inboundNo)}`)}>{r.inboundNo}</button> },
+    { key: 'extInboundCode', label: 'Ext Inbound No' }, { key: 'transferNo', label: 'STO No' }, { key: 'asnNumber', label: 'ASN No' },
+    { key: 'poNo', label: 'PO No' }, { key: 'GRNNo', label: 'GRN No' }, { key: 'createdDate', label: 'Creation Date' },
+    { key: 'displayInboundType', label: 'Inbound Type', filter: 'select', options: (meta.inboundTypes || []).map((x: any) => x[1]) },
+    { key: 'invoiceNo', label: 'Invoice No' }, { key: 'vendorCode', label: 'vendor', filterAction: (_value: string, setValue: (value: string) => void) => { setVendorFilterSetter(() => setValue); setPicker('vendor'); }, render: (r: any) => <span><span className="block text-sky-700">{r.vendorCode}</span><i className="text-xs">{r.vendorName}</i></span> },
+    { key: 'status', label: 'Status', filter: 'select', options: (meta.statuses || []).map((x: any) => x[1]) },
+    { key: 'qcStatus', label: 'QC Status', filter: 'select', options: ['in QC', 'QC Done'] },
+    { key: 'inboundLoc', label: 'Inbound Location', filter: 'select', options: ['UWH-JX Karawaci'] },
+    { key: 'extCustReturnNo', label: 'Ext Return No' }, { key: 'extInvoiceNo', label: 'Ext Invoice No' },
+  ];
+  const advancedFields: EField[] = advOpen ? [
+    { key: 'fromInboundNo', label: 'Inbound No', value: advanced.fromInboundNo, onChange: (v) => setAdv('fromInboundNo', v) },
+    { key: 'fromGRNNo', label: 'GRN No', value: advanced.fromGRNNo, onChange: (v) => setAdv('fromGRNNo', v) },
+    { key: 'vendorCode', label: 'Vendor Code', value: advanced.vendorCode, onChange: (v) => setAdv('vendorCode', v), filterAction: () => setPicker('vendor') },
+    { key: 'createdDate', label: 'Creation Date', value: advanced.createdDate, onChange: (v) => setAdv('createdDate', v) },
+    { key: 'GRNDate', label: 'GRN Date', value: advanced.GRNDate, onChange: (v) => setAdv('GRNDate', v) },
+    { key: 'locationCode', label: 'Location Code', type: 'select', options: ['UWH-JX Karawaci'], disabled: true, value: 'UWH-JX Karawaci' },
+    { key: 'PONo', label: 'PO No', value: advanced.PONo, onChange: (v) => setAdv('PONo', v) },
+    { key: 'status', label: 'Status', type: 'select', options: (meta.statuses || []).map((x: any) => x[1]), value: advanced.status, onChange: (v) => setAdv('status', v) },
+    { key: 'fromInvoiceNo', label: 'Invoice No', value: advanced.fromInvoiceNo, onChange: (v) => setAdv('fromInvoiceNo', v) },
+    { key: 'inboundType', label: 'Inbound Type', type: 'select', options: ['--- Select ---', ...(meta.inboundTypes || []).map((x: any) => x[1])], value: advanced.inboundType, onChange: (v) => setAdv('inboundType', v) },
+    { key: 'isBarCode', label: 'BarCode', type: 'checkbox', checked: advanced.isBarCode, onChange: (v) => setAdv('isBarCode', v) },
+    { key: 'skuCode', label: 'SKUCode', value: advanced.skuCode, onChange: (v) => setAdv('skuCode', v) },
+    { key: 'orderNo', label: 'Order No', disabled: !['Delivered Return', 'Non Delivered Return', 'With STO', '3', '4', '5'].includes(advanced.inboundType), value: advanced.orderNo, onChange: (v) => setAdv('orderNo', v) },
+    { key: 'lotCode', label: 'Lot No', disabled: true, value: advanced.lotCode, filterAction: () => setPicker('lot') },
+    { key: 'hierarchyCode', label: 'Hierarchy Code', disabled: true, value: advanced.hierarchyCode, filterAction: () => setPicker('hierarchy') },
+    { key: 'usnNo', label: 'USN', value: advanced.usnNo, onChange: (v) => setAdv('usnNo', v) },
+    { key: 'inbLpn', label: 'LPN', value: advanced.inbLpn, onChange: (v) => setAdv('inbLpn', v) },
+  ] : [];
+  const vendorCols: GCol[] = [{ key: 'code', label: 'Vendor Code' }, { key: 'name', label: 'Vendor Name' }];
+  const actions: any[] = [{ label: 'Advance Search', icon: SearchIcon, onClick: () => setAdvOpen(!advOpen) }, { label: 'Add New', icon: Plus, onClick: () => nav('/app/r/inbound-realtime') }, { label: 'QC', onClick: () => void act('qc') }, { label: 'PutAway', onClick: () => void act('putaway') }];
+
+  return <Shell active="wms" breadcrumb="WMS > Inbound > Inbound Enquiry" openScreens={[{ label: 'Inbound Enquiry', to: '#' }]}>
+    <EnquiryScreen breadcrumb={[{ label: 'WMS' }, { label: 'Inbound' }, { label: 'Inbound Enquiry' }]} cols={cols} fields={advancedFields} rows={rows} loading={loading} remote={pager} initialFilters={initialFilters} pageSizes={[20, 50, 100, 200]} selectedIds={selected} onSelectionChange={(ids) => setSelected(ids.slice(-1))} onSearch={search} onReset={reset} actions={actions} />
+    <Modal title="Vendor" open={picker === 'vendor'} onClose={() => { setPicker(null); setVendorFilterSetter(null); }}><OrderGrid cols={vendorCols} rows={meta.vendors || []} empty="No vendors to view" onRowClick={(r: any) => { if (vendorFilterSetter) vendorFilterSetter(r.code); else setAdv('vendorCode', r.code); setVendorFilterSetter(null); setPicker(null); }} /></Modal>
+    <Modal title="Multiple Lot No" open={picker === 'lot'} onClose={() => setPicker(null)}><textarea aria-label="Lot Numbers" className="h-40 w-full border p-2" value={lotText} onChange={(e) => setLotText(e.target.value)} /><div className="mt-3 flex justify-end"><button className="rounded bg-amber-500 px-3 py-2 text-white" onClick={() => { const values = lotText.split(/\r?\n/).map((x) => x.trim()).filter(Boolean); if (!values.length) return setToast({ msg: 'Please Enter LotNo', type: 'err' }); if (values.length > 100) return setToast({ msg: 'Max 100 Records Can Be Entered', type: 'err' }); setAdv('lotNoArr', values.join('\n')); setAdv('lotCode', values.join(', ')); setPicker(null); }}>Search</button></div></Modal>
+    <Modal title="Hierarchy Code" open={picker === 'hierarchy'} onClose={() => setPicker(null)}>{(meta.hierarchies || []).map((x: any) => <button key={x.code} className="block w-full border-b p-3 text-left" onClick={() => { setAdv('hierarchyCode', x.name); setAdv('mhierachyCode', x.code); setPicker(null); }}>{x.code} — {x.name}</button>)}</Modal>
+    {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+  </Shell>;
+}
