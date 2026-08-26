@@ -64,6 +64,7 @@ import orderRefunds from "./api/order-refunds.js";
 import omsRules from "./api/oms-rules.js";
 import masterOrders from "./api/master-orders.js";
 import orderEnquiry from "./api/order-enquiry.js";
+import orderMaintenance from "./api/order-maintenance.js";
 import kittingOrders from "./api/kitting-orders.js";
 import globalOrderSearch from "./api/global-order-search.js";
 import codReconciliation from "./api/cod-reconciliation.js";
@@ -192,6 +193,7 @@ const routes = {
   "/api/oms-rules": omsRules,
   "/api/master-orders": masterOrders,
   "/api/order-enquiry": orderEnquiry,
+  "/api/order-maintenance": orderMaintenance,
   "/api/kitting-orders": kittingOrders,
   "/api/global-order-search": globalOrderSearch,
   "/api/cod-reconciliation": codReconciliation,

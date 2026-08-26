@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Download,
   FileUp,
@@ -29,18 +29,18 @@ const LOCATIONS = [
 ];
 const LOCATION_TYPES = [{ value: "6", label: "Franchise" }, { value: "3", label: "Store" }, { value: "2", label: "WH" }];
 const FULFILMENT = ["Direct Store Purchase", "Distribution Center"];
-const ARS_STATUS = ["Pending", "Active", "Inactive", "Discontinued"];
+const ARS_STATUS = ["Pending", "Active", "InActive", "Discontinued"];
 const RULE_METHODS = ["Min-Max", "Sales History"];
-const VENDOR_TYPES = ["Min Cost", "Min Lead Time", "Primary"];
+const VENDOR_TYPES = ["Min Cost", "Min Lead Tim", "Primary"];
 const OUTPUT_TYPES = ["Confirmed", "Pending", "Report"];
 const SKU_SET_TYPES = ["Brand", "Group", "Hierarchy", "SKU", "Vendor"];
 const FREQUENCIES = [
-  { v: "0", l: "Never" },
-  { v: "1", l: "Hourly" },
-  { v: "2", l: "Every 2 Hours" },
-  { v: "24", l: "Daily" },
-  { v: "168", l: "Weekly" },
-  { v: "720", l: "Monthly" },
+  { v: "6", l: "Never" },
+  { v: "2", l: "Bimonthly" },
+  { v: "1", l: "Monthly" },
+  { v: "4", l: "Biweekly" },
+  { v: "3", l: "Weekly" },
+  { v: "5", l: "Daily" },
 ];
 const cls =
   "w-full rounded-sm border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-600 outline-none focus:border-cyan-500";
@@ -786,9 +786,11 @@ export function ARSSkuLocation() {
 
 export function ARSRules() {
   const nav = useNavigate();
+  const [routeParams] = useSearchParams();
   const [rows, setRows] = useState<any[]>([]);
   const [links, setLinks] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>({});
+  const [ruleLocations, setRuleLocations] = useState<any[]>([]);
   const [editing, setEditing] = useState(false);
   const [record, setRecord] = useState<any>(null);
   const [notice, setNotice] = useState<Notice>(null);
@@ -812,12 +814,21 @@ export function ARSRules() {
     locations: [] as string[],
     start_date: "",
     end_date: "",
-    status: "Pending",
-    frequency: "0",
+    status: "",
+    frequency: "6",
+    odd_even: "1",
+    schedule_day: "1",
+    schedule_weekday: "2",
+    schedule_hour: "0",
+    days_of_inventory: "",
     sku_sets: [] as any[],
   };
   const [form, setForm] = useState(empty);
   const [locationPicker, setLocationPicker] = useState(false);
+  const [skuSetPicker, setSkuSetPicker] = useState(false);
+  const [skuSetEdit, setSkuSetEdit] = useState<number | null>(null);
+  const [skuSetDraft, setSkuSetDraft] = useState({ operand: "", type: "Brand", value: "" });
+  const [showAudit, setShowAudit] = useState(false);
   const [filters, setFilters] = useState({
     location: "",
     product_set: "",
@@ -835,13 +846,23 @@ export function ARSRules() {
     Promise.all([
       apiGet<any[]>("/api/ars?entity=links"),
       apiGet<any[]>("/api/ars?entity=settings"),
-    ]).then(([l, s]) => {
+      apiGet<any>("/api/locations"),
+    ]).then(([l, s, locationData]) => {
       setLinks(l);
       setSettings(s[0] || {});
+      setRuleLocations(Array.isArray(locationData) ? locationData : locationData.rows || []);
     });
   useEffect(() => {
     void loadDependencies();
   }, []);
+  useEffect(() => {
+    const ruleId = routeParams.get("ruleId");
+    if (!ruleId) return;
+    apiGet<any[]>("/api/ars?entity=rules").then((items) => {
+      const match = items.find((item) => String(item.rule_id) === ruleId);
+      if (match) openEdit(match);
+    }).catch(() => undefined);
+  }, [routeParams]);
   const search = async (nextPage = 1, nextSize = pageSize) => {
     setLoading(true);
     try {
@@ -887,6 +908,7 @@ export function ARSRules() {
     setRecord(null);
     setForm(empty);
     setEditing(true);
+    setShowAudit(false);
   };
   const openEdit = (r: any) => {
     const locations =
@@ -902,6 +924,24 @@ export function ARSRules() {
       frequency: String(r.frequency),
     });
     setEditing(true);
+    setShowAudit(false);
+  };
+  const openSkuSet = (index: number | null = null) => {
+    const row = index === null ? null : form.sku_sets[index];
+    setSkuSetEdit(index);
+    setSkuSetDraft(row ? { operand: row.operand, type: row.type, value: row.value } : { operand: "", type: "Brand", value: "" });
+    setSkuSetPicker(true);
+  };
+  const saveSkuSet = () => {
+    if (!skuSetDraft.operand) return setNotice({ msg: "Please Select Type", type: "err" });
+    if (!skuSetDraft.value) return setNotice({ msg: "Please Select Value", type: "err" });
+    const next = [...form.sku_sets];
+    if (skuSetEdit === null) {
+      if (next.length >= 50) return setNotice({ msg: "Too Many Record selected", type: "err" });
+      next.push(skuSetDraft);
+    } else next[skuSetEdit] = skuSetDraft;
+    setForm({ ...form, sku_sets: next });
+    setSkuSetPicker(false);
   };
   const save = async () => {
     setBusy(true);
@@ -930,7 +970,7 @@ export function ARSRules() {
         locations: row.locations || [row.location].filter(Boolean),
         frequency: String(row.frequency),
       });
-      setNotice({ msg: "ARS Rule saved successfully.", type: "ok" });
+      setNotice({ msg: "ARS Rule created/updated Successfully", type: "ok" });
       if (searched) void search(page);
       return row;
     } catch (e: any) {
@@ -951,7 +991,7 @@ export function ARSRules() {
       });
       setRecord(updated);
       setForm({ ...form, ...updated, frequency: String(updated.frequency) });
-      setNotice({ msg: "ARS Rule confirmed and activated.", type: "ok" });
+      setNotice({ msg: "ARS Rule created/updated Successfully", type: "ok" });
       if (searched) void search(page);
     } catch (e: any) {
       setNotice({ msg: e.message, type: "err" });
@@ -967,6 +1007,7 @@ export function ARSRules() {
         action: "run",
       });
       setNotice({ msg: log.message, type: "ok" });
+      nav(`/app/procurement/ars/logs?ruleId=${record.rule_id}&executionId=${log.execution_id || ""}`);
       if (searched) void search(page);
     } catch (e: any) {
       setNotice({ msg: e.message, type: "err" });
@@ -977,9 +1018,10 @@ export function ARSRules() {
   const del = async () => {
     if (!record) return;
     try {
-      await apiSend("/api/ars", "DELETE", { entity: "rules", id: record.id });
-      setEditing(false);
-      setNotice({ msg: "ARS Rule deleted.", type: "ok" });
+      const updated: any = await apiSend("/api/ars", "PUT", { entity: "rules", id: record.id, status: "InActive" });
+      setRecord(updated);
+      setForm({ ...form, ...updated, frequency: String(updated.frequency) });
+      setNotice({ msg: "ARS Rule Deleted Successfully", type: "ok" });
       if (searched) void search(page);
     } catch (e: any) {
       setNotice({ msg: e.message, type: "err" });
@@ -987,13 +1029,11 @@ export function ARSRules() {
   };
   const periodOptions = [
     settings.ros_lifetime && "Life Time",
-    settings.ros_12_weeks && "12 Weeks",
-    settings.ros_6_weeks && "6 Weeks",
+    settings.ros_12_weeks && "12 Week",
+    settings.ros_6_weeks && "6 Week",
     settings.ros_1_month && "1 Month",
     settings.ros_2_weeks && "2 Weeks",
-    ...(settings.custom_periods || [])
-      .filter(Boolean)
-      .map((x: string) => `${x} Days`),
+    ...(settings.custom_periods || []).filter(Boolean).map((x: string) => `${x} Days`),
   ].filter(Boolean) as string[];
   if (editing)
     return (
@@ -1007,13 +1047,13 @@ export function ARSRules() {
       >
         <div className="border border-slate-300 bg-white">
           <Bar>
-            <Btn variant="ghost" disabled={!record || busy} onClick={run}>
+            <Btn variant="ghost" disabled={busy} onClick={run}>
               <Play size={13} />
               Run Now
             </Btn>
             <Btn
               variant="ghost"
-              onClick={() => nav("/app/procurement/ars/logs")}
+              onClick={() => nav(`/app/procurement/ars/logs${record ? `?ruleId=${record.rule_id}` : ""}`)}
             >
               <History size={13} />
               View Log
@@ -1022,21 +1062,13 @@ export function ARSRules() {
               Save
             </Btn>
             <Btn
-              disabled={!record || record.status !== "Pending"}
+              disabled={busy}
               onClick={confirm}
             >
               Confirm
             </Btn>
-            <Btn variant="ghost" disabled={!record} onClick={del}>
-              <Trash2 size={13} />
-              Delete
-            </Btn>
             <Btn variant="ghost" onClick={openNew}>
               Add New
-            </Btn>
-            <Btn variant="ghost" onClick={() => setEditing(false)}>
-              <X size={13} />
-              Close
             </Btn>
           </Bar>
           <div className="grid grid-cols-1 gap-x-8 gap-y-3 border-t p-4 lg:grid-cols-[1fr_1fr_220px]">
@@ -1056,7 +1088,7 @@ export function ARSRules() {
                     setForm({ ...form, ars_method: e.target.value })
                   }
                 >
-                  <option value="">-- Select --</option>
+                  <option value="">--- Select ---</option>
                   {RULE_METHODS.map((x) => (
                     <option key={x}>{x}</option>
                   ))}
@@ -1070,7 +1102,7 @@ export function ARSRules() {
                     setForm({ ...form, output_type: e.target.value })
                   }
                 >
-                  <option value="">-- Select --</option>
+                  <option value="">--- Select ---</option>
                   {OUTPUT_TYPES.map((x) => (
                     <option key={x}>{x}</option>
                   ))}
@@ -1105,25 +1137,17 @@ export function ARSRules() {
                     setForm({ ...form, vendor_type: e.target.value })
                   }
                 >
-                  <option value="">-- Select --</option>
+                  <option value="">--- Select ---</option>
                   {VENDOR_TYPES.map((x) => (
                     <option key={x}>{x}</option>
                   ))}
                 </select>
               </Field>
               <Field label="Location" required>
-                <select
-                  className={cls}
-                  value={form.location}
-                  onChange={(e) =>
-                    setForm({ ...form, location: e.target.value })
-                  }
-                >
-                  <option value="">-- Select --</option>
-                  {LOCATIONS.map((x) => (
-                    <option key={x}>{x}</option>
-                  ))}
-                </select>
+                <div className="flex">
+                  <input className={cls} readOnly value={form.locations.length ? `${form.locations.length} Selected` : ""} />
+                  <button aria-label="Select Location" className="border px-3" onClick={() => setLocationPicker(true)}>...</button>
+                </div>
               </Field>
               <Field label="Status" required>
                 <select
@@ -1131,6 +1155,7 @@ export function ARSRules() {
                   value={form.status}
                   onChange={(e) => setForm({ ...form, status: e.target.value })}
                 >
+                  <option value="">--- Select ---</option>
                   {ARS_STATUS.map((x) => (
                     <option key={x}>{x}</option>
                   ))}
@@ -1151,11 +1176,12 @@ export function ARSRules() {
                 <br />
                 <b>{record?.next_run_date || "—"}</b>
               </p>
-              <button className="w-full border bg-slate-100 p-2">Audit</button>
+              <button onClick={() => setShowAudit((value) => !value)} className="w-full border bg-slate-100 p-2">Audit</button>
+              {showAudit && <div className="space-y-2 border p-2"><p>Created By<br/><b>{record?.created_by || "—"}</b></p><p>Created Date<br/><b>{record?.created_date || "—"}</b></p><p>Updated By<br/><b>{record?.updated_by || "—"}</b></p><p>Updated Date<br/><b>{record?.updated_date || "—"}</b></p></div>}
             </aside>
             <div className="grid gap-3">
               <Field
-                label="Minimum Quantity"
+                label="Min"
                 required={form.ars_method === "Min-Max"}
               >
                 <input
@@ -1170,7 +1196,7 @@ export function ARSRules() {
                 />
               </Field>
               <Field
-                label="Maximum Quantity"
+                label="Max"
                 required={form.ars_method === "Min-Max"}
               >
                 <input
@@ -1196,7 +1222,7 @@ export function ARSRules() {
                     setForm({ ...form, ros_period: e.target.value })
                   }
                 >
-                  <option value="">-- Select --</option>
+                  <option value="">--- Select ---</option>
                   {periodOptions.map((x) => (
                     <option key={x}>{x}</option>
                   ))}
@@ -1239,19 +1265,15 @@ export function ARSRules() {
                   ))}
                 </select>
               </Field>
+              {(form.frequency === "1" || form.frequency === "2") && <Field label="Day"><select className={cls} value={form.schedule_day} onChange={(e) => setForm({ ...form, schedule_day: e.target.value })}>{Array.from({ length: 28 }, (_, i) => <option key={i + 1}>{i + 1}</option>)}</select></Field>}
+              {(form.frequency === "3" || form.frequency === "4") && <Field label="Week"><select className={cls} value={form.schedule_weekday} onChange={(e) => setForm({ ...form, schedule_weekday: e.target.value })}>{[["2", "Monday"], ["3", "Tuesday"], ["4", "Wednesday"], ["5", "Thursday"], ["6", "Friday"], ["7", "Saturday"], ["1", "Sunday"]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></Field>}
+              {(form.frequency === "2" || form.frequency === "4") && <Field label={form.frequency === "2" ? "Month" : "Week Type"}><select className={cls} value={form.odd_even} onChange={(e) => setForm({ ...form, odd_even: e.target.value })}><option value="1">Every Odd {form.frequency === "2" ? "Month" : "Week"}</option><option value="2">Every Even {form.frequency === "2" ? "Month" : "Week"}</option></select></Field>}
+              {form.frequency !== "6" && <Field label="Hour"><select className={cls} value={form.schedule_hour} onChange={(e) => setForm({ ...form, schedule_hour: e.target.value })}>{Array.from({ length: 24 }, (_, i) => <option key={i}>{i}</option>)}</select></Field>}
             </div>
           </div>
           <div className="border-t p-3">
             <button
-              onClick={() =>
-                setForm({
-                  ...form,
-                  sku_sets: [
-                    ...form.sku_sets,
-                    { type: "SKU", operand: "Equals", value: "" },
-                  ],
-                })
-              }
+              onClick={() => openSkuSet()}
               className="mb-2 bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white"
             >
               ＋ Add SKU Set
@@ -1268,66 +1290,11 @@ export function ARSRules() {
               <tbody>
                 {form.sku_sets.map((s: any, i: number) => (
                   <tr key={i}>
+                    <Td>{s.operand}</Td>
+                    <Td>{s.type}</Td>
+                    <Td>{s.value}</Td>
                     <Td>
-                      <select
-                        className={cls}
-                        value={s.type}
-                        onChange={(e) => {
-                          const a = [...form.sku_sets];
-                          a[i] = { ...s, type: e.target.value };
-                          setForm({ ...form, sku_sets: a });
-                        }}
-                      >
-                        {SKU_SET_TYPES.map((x) => (
-                          <option key={x}>{x}</option>
-                        ))}
-                      </select>
-                    </Td>
-                    <Td>
-                      <select
-                        className={cls}
-                        value={s.operand}
-                        onChange={(e) => {
-                          const a = [...form.sku_sets];
-                          a[i] = { ...s, operand: e.target.value };
-                          setForm({ ...form, sku_sets: a });
-                        }}
-                      >
-                        <option>Equals</option>
-                        <option>Not Equals</option>
-                      </select>
-                    </Td>
-                    <Td>
-                      {s.type === "SKU" ? (
-                        <select
-                          className={cls}
-                          value={s.value}
-                          onChange={(e) => {
-                            const a = [...form.sku_sets];
-                            a[i] = { ...s, value: e.target.value };
-                            setForm({ ...form, sku_sets: a });
-                          }}
-                        >
-                          <option value="">-- Select --</option>
-                          {links.map((l) => (
-                            <option key={l.id} value={l.sku_code}>
-                              {l.sku_code}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          className={cls}
-                          value={s.value}
-                          onChange={(e) => {
-                            const a = [...form.sku_sets];
-                            a[i] = { ...s, value: e.target.value };
-                            setForm({ ...form, sku_sets: a });
-                          }}
-                        />
-                      )}
-                    </Td>
-                    <Td>
+                      <button aria-label={`View SKU Set ${i + 1}`} onClick={() => openSkuSet(i)} className="mr-3 text-emerald-600">ⓘ</button>
                       <button
                         onClick={() =>
                           setForm({
@@ -1348,6 +1315,14 @@ export function ARSRules() {
             </table>
           </div>
         </div>
+        <Modal title="Location Pick List" open={locationPicker} onClose={() => setLocationPicker(false)} wide>
+          <div className="max-h-80 overflow-auto border p-2">{ruleLocations.map((row: any) => { const code = row.location_code || row.code || row.location_name || row.name; const label = row.location_name || row.name || code; return <label key={code} className="block border-b p-2"><input type="checkbox" checked={form.locations.includes(code)} onChange={() => setForm({ ...form, locations: form.locations.includes(code) ? form.locations.filter((x: string) => x !== code) : [...form.locations, code] })} /> {label}</label>; })}</div>
+          <div className="mt-3 flex justify-end gap-2"><Btn onClick={() => setLocationPicker(false)}>OK</Btn><Btn variant="ghost" onClick={() => setLocationPicker(false)}>Close</Btn></div>
+        </Modal>
+        <Modal title="Add SKU Set" open={skuSetPicker} onClose={() => setSkuSetPicker(false)} wide>
+          <div className="grid gap-3"><Field label="Type" required><select aria-label="SKU Set Type" className={cls} value={skuSetDraft.operand} onChange={(e) => setSkuSetDraft({ ...skuSetDraft, operand: e.target.value })}><option value="">--- Select ---</option><option>Exclude</option><option>Include</option></select></Field><Field label="Operand" required><select aria-label="SKU Set Operand" className={cls} value={skuSetDraft.type} onChange={(e) => setSkuSetDraft({ ...skuSetDraft, type: e.target.value, value: "" })}>{SKU_SET_TYPES.map((x) => <option key={x}>{x}</option>)}</select></Field><Field label="Value" required><select aria-label="SKU Set Value" className={cls} value={skuSetDraft.value} onChange={(e) => setSkuSetDraft({ ...skuSetDraft, value: e.target.value })}><option value="">--- Select ---</option>{Array.from(new Set(links.map((row: any) => skuSetDraft.type === "SKU" ? row.sku_code : skuSetDraft.type === "Brand" ? row.brand : skuSetDraft.type === "Vendor" ? row.primary_vendor : skuSetDraft.type === "Hierarchy" ? row.category : row.sku_group).filter(Boolean))).map((x: any) => <option key={x}>{x}</option>)}</select></Field></div>
+          <div className="mt-4 flex justify-end gap-2"><Btn onClick={saveSkuSet}>OK</Btn><Btn variant="ghost" onClick={() => setSkuSetPicker(false)}>Close</Btn></div>
+        </Modal>
         {notice && <Toast {...notice} onClose={() => setNotice(null)} />}
       </Shell>
     );
@@ -1400,10 +1375,8 @@ export function ARSRules() {
               setFilters({ ...filters, location: e.target.value })
             }
           >
-            <option value="">-- Select --</option>
-            {LOCATIONS.map((x) => (
-              <option key={x}>{x}</option>
-            ))}
+            <option value="">--- Select ---</option>
+            {ruleLocations.map((row: any) => { const value = row.location_name || row.name || row.location_code || row.code; return <option key={row.id || value} value={value}>{value}</option>; })}
           </select>
         </Field>
         <Field label="Product Set">
@@ -1414,7 +1387,7 @@ export function ARSRules() {
               setFilters({ ...filters, product_set: e.target.value })
             }
           >
-            <option value="">-- Select --</option>
+            <option value="">--- Select ---</option>
             {SKU_SET_TYPES.map((x) => (
               <option key={x}>{x}</option>
             ))}
@@ -1525,7 +1498,11 @@ export function ARSRules() {
 }
 
 export function ARSExecutionLog() {
+  const nav = useNavigate();
+  const { requestDownload } = useDownload();
+  const [routeParams] = useSearchParams();
   const [rows, setRows] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
   const [filters, setFilters] = useState({
     execution_id: "",
     rule_id: "",
@@ -1547,6 +1524,7 @@ export function ARSExecutionLog() {
   const [total, setTotal] = useState(0);
   const [picker, setPicker] = useState<"rule" | "execution" | null>(null);
   const [pickerRows, setPickerRows] = useState<any[]>([]);
+  const [statusDetail, setStatusDetail] = useState<any>(null);
   const search = async (nextPage = 1, nextSize = pageSize) => {
     setLoading(true);
     try {
@@ -1568,6 +1546,33 @@ export function ARSExecutionLog() {
     try { setPickerRows(await apiGet<any[]>(`/api/ars?entity=${kind === "rule" ? "rules" : "logs"}`)); setPicker(kind); }
     catch (error: any) { setNotice({ msg: error.message, type: "err" }); }
   };
+  useEffect(() => {
+    apiGet<any>("/api/locations").then((data) => setLocations(data.rows || [])).catch(() => undefined);
+    const ruleId = routeParams.get("ruleId") || "";
+    const executionId = routeParams.get("executionId") || "";
+    if (ruleId || executionId) setFilters((current) => ({ ...current, rule_id: ruleId, execution_id: executionId }));
+    void search(1);
+  }, []);
+  const updateDetail = async (action: "approve-all" | "process-all") => {
+    if (!detail) return;
+    try {
+      const result: any = await apiSend("/api/ars", "POST", { entity: "logs", action, id: detail.id });
+      setDetail(result.log);
+      setNotice({ msg: action === "approve-all" ? `(${result.count}) Records are approved.` : `(${result.count}) Records are under processing. Please wait for couple of minutes.`, type: "ok" });
+    } catch (error: any) { setNotice({ msg: error.message, type: "err" }); }
+  };
+  const downloadDetail = () => {
+    if (!detail?.execution_details?.length) return setNotice({ msg: "No data in grid to export", type: "err" });
+    requestDownload({ title: "ARS Execution Detail Log", module: "ARS Execution Detail Log", baseName: `ars-execution-${detail.execution_id}`, data: { columns: ["Location", "SKU", "Vendor", "Inventory", "ARS Calc", "ARS Approved", "Status", "Doc Generated"], rows: detail.execution_details.map((row: any) => [row.location, row.sku_code, row.vendor, row.inventory, row.ars_calculated, row.ars_approved, row.status, row.document_generated]) } });
+  };
+  if (detail) return <Shell active="procurement" breadcrumb="Procurement > ARS > ARS Execution Detail Log" openScreens={[{ label: "ARS Execution Log", to: "#" }, { label: "ARS Execution Detail Log", to: "#" }]}>
+    <Bar><Btn variant="warn">Search</Btn><Btn variant="ghost" onClick={downloadDetail}>Download</Btn><Btn variant="ghost" onClick={() => void updateDetail("approve-all")}>Approve All</Btn><Btn variant="ghost" onClick={() => void updateDetail("process-all")}>Process All</Btn><Btn variant="ghost" onClick={() => setDetail(null)}>Reset</Btn></Bar>
+    <div className="grid grid-cols-2 gap-4 border bg-white p-3"><Field label="Rule ID"><input className={cls} readOnly value={detail.rule_id || ""}/></Field><Field label="Execution ID"><input className={cls} readOnly value={detail.execution_id || ""}/></Field></div>
+    <button className="my-2 text-xs text-sky-600 underline" onClick={() => setStatusDetail(detail)}>For Information regarding all attributes and ARS calculation. Please Click Here.</button>
+    <table className="w-full bg-white"><thead><tr>{["Location", "SKU", "Vendor", "Inventory", "ARS Calc", "ARS Approved", "Status", "Doc Generated"].map((value) => <Th key={value}>{value}</Th>)}</tr></thead><tbody>{(detail.execution_details || []).map((row: any, index: number) => <tr key={index}><Td>{row.location}</Td><Td>{row.sku_code}</Td><Td>{row.vendor}</Td><Td>{row.inventory}</Td><Td>{row.ars_calculated}</Td><Td>{row.ars_approved}</Td><Td><button className="text-sky-600" onClick={() => setStatusDetail(row)}>{row.status}</button></Td><Td>{row.document_generated ? <button className="text-sky-600" onClick={() => nav(`/app/procurement/purchase-orders?poNo=${row.document_generated}`)}>{row.document_generated}</button> : ""}</Td></tr>)}</tbody></table>
+    <Modal title="ARS Execution Status" open={!!statusDetail} onClose={() => setStatusDetail(null)}><pre className="whitespace-pre-wrap text-xs">{JSON.stringify(statusDetail, null, 2)}</pre></Modal>
+    {notice && <Toast {...notice} onClose={() => setNotice(null)} />}
+  </Shell>;
   return (
     <Shell
       active="procurement"
@@ -1608,12 +1613,12 @@ export function ARSExecutionLog() {
             ))}
           </tr>
           <tr>
-            <th className="p-1"><select aria-label="Location" className={cls} value={filters.location} onChange={(e) => setFilters({ ...filters, location: e.target.value })}><option value="">--- Select ---</option>{LOCATIONS.map((value) => <option key={value}>{value}</option>)}</select></th>
-            <th className="p-1"><input className={cls} value={filters.execution_id} onChange={(e) => setFilters({ ...filters, execution_id: e.target.value })}/></th>
+            <th className="p-1"><select aria-label="Location" className={cls} value={filters.location} onChange={(e) => setFilters({ ...filters, location: e.target.value })}><option value="">--- Select ---</option>{locations.map((row: any) => { const value = row.location_name || row.name || row.location_code || row.code; return <option key={row.id || value} value={value}>{value}</option>; })}</select></th>
+            <th className="p-1" />
             <th className="p-1"><input className={cls} value={filters.exec_time} onChange={(e) => setFilters({ ...filters, exec_time: e.target.value })}/></th>
             <th className="p-1"><input className={cls} value={filters.rule_desc} onChange={(e) => setFilters({ ...filters, rule_desc: e.target.value })}/></th>
             <th className="p-1"><select className={cls} value={filters.frequency} onChange={(e) => setFilters({ ...filters, frequency: e.target.value })}><option value="">--- Select ---</option>{['Never','Bimonthly','Monthly','Biweekly','Weekly','Daily'].map((value) => <option key={value}>{value}</option>)}</select></th>
-            <th className="p-1"><select className={cls} value={filters.vendor_type} onChange={(e) => setFilters({ ...filters, vendor_type: e.target.value })}><option value="">--- Select ---</option>{['Min Cost','Min Lead Time','Primary'].map((value) => <option key={value}>{value}</option>)}</select></th>
+            <th className="p-1"><select className={cls} value={filters.vendor_type} onChange={(e) => setFilters({ ...filters, vendor_type: e.target.value })}><option value="">--- Select ---</option>{['Min Cost','Min Lead Tim','Primary'].map((value) => <option key={value}>{value}</option>)}</select></th>
             <th className="p-1"><select className={cls} value={filters.output_type} onChange={(e) => setFilters({ ...filters, output_type: e.target.value })}><option value="">--- Select ---</option>{OUTPUT_TYPES.map((value) => <option key={value}>{value}</option>)}</select></th>
             <th className="p-1"><select className={cls} value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}><option value="">--- Select ---</option>{['Pending','InProcess','ARS Generated','Approved','Document Generated','Zero Qty','Document Inprocess','Error'].map((value) => <option key={value}>{value}</option>)}</select></th>
           </tr>
@@ -1628,9 +1633,9 @@ export function ARSExecutionLog() {
                 </button>
               </Td>
               <Td>{r.execTime ? new Date(r.execTime).toLocaleString() : ""}</Td>
-              <Td>{r.ruleDesc}</Td><Td>{r.frequencyDesc}</Td><Td>{r.vendorTypeDesc}</Td><Td>{r.outPutTypeDesc}</Td>
+              <Td><button className="text-sky-600" onClick={() => nav(`/app/procurement/ars/rules?ruleId=${r.rule_id}`)}>{r.ruleDesc}</button></Td><Td>{r.frequencyDesc}</Td><Td>{r.vendorTypeDesc}</Td><Td>{r.outPutTypeDesc}</Td>
               <Td>
-                <Status value={r.statusDesc} />
+                <button onClick={() => setStatusDetail(r)}><Status value={r.statusDesc} /></button>
               </Td>
             </tr>
           ))}
@@ -1666,6 +1671,7 @@ export function ARSExecutionLog() {
           </p>
         )}
       </Modal>
+      <Modal title="ARS Execution Status" open={!!statusDetail} onClose={() => setStatusDetail(null)}><div className="space-y-2 text-sm"><p><b>Execution ID:</b> {statusDetail?.execution_id || statusDetail?.arsExecId}</p><p><b>Location:</b> {statusDetail?.location}</p><p><b>Status:</b> {statusDetail?.statusDesc || statusDetail?.status}</p><p>{statusDetail?.message}</p></div></Modal>
       {notice && <Toast {...notice} onClose={() => setNotice(null)} />}
     </Shell>
   );
@@ -1681,6 +1687,8 @@ export function ARSSettings() {
     ros_1_month: false,
     ros_2_weeks: false,
     custom_periods: ["", "", ""],
+    custom_period_enabled: [false, false, false],
+    puf_tuf: "1",
   });
   const [notice, setNotice] = useState<Notice>(null);
   useEffect(() => {
@@ -1690,12 +1698,20 @@ export function ARSSettings() {
   }, []);
   const save = async () => {
     try {
+      const enabled = form.custom_period_enabled || [false, false, false];
+      for (let index = 0; index < 3; index += 1) {
+        if (enabled[index] && !String(form.custom_periods?.[index] || "").trim()) throw new Error("Please Enter Days in Textbox to Make it Active.");
+        const value = String(form.custom_periods?.[index] || "").trim();
+        if (value && (!/^\d+$/.test(value) || Number(value) < 2 || Number(value) > 365)) throw new Error("Please Enter Days between 2 and 365");
+      }
+      const activeRos = [form.ros_lifetime, form.ros_12_weeks, form.ros_6_weeks, form.ros_1_month, form.ros_2_weeks, ...enabled].filter(Boolean).length;
+      if (form.enable_ars && activeRos < 2) throw new Error("Minimum 2 ROS Calculation parameters should be Active");
       const r = await apiSend("/api/ars", "PUT", {
         entity: "settings",
         ...form,
       });
       setForm(r);
-      setNotice({ msg: "ARS and ROS configuration saved.", type: "ok" });
+      setNotice({ msg: "Configuration updated Successfully", type: "ok" });
     } catch (e: any) {
       setNotice({ msg: e.message, type: "err" });
     }
@@ -1739,6 +1755,9 @@ export function ARSSettings() {
                 ))}
               </select>
             </Field>
+            <Field label="PUF/TUF">
+              <select className={cls} value={form.puf_tuf || "1"} onChange={(e) => setForm({ ...form, puf_tuf: e.target.value })}><option value="1">Round Up</option><option value="2">Round Down</option></select>
+            </Field>
           </div>
         </section>
         <section className="p-5">
@@ -1761,9 +1780,12 @@ export function ARSSettings() {
               (v: string, i: number) => (
                 <Field key={i} label="Custom Period">
                   <span className="flex items-center gap-2">
+                    <input type="checkbox" aria-label={`Custom Period ${i + 1} Active`} checked={!!form.custom_period_enabled?.[i]} onChange={(e) => { const active = [...(form.custom_period_enabled || [false, false, false])]; active[i] = e.target.checked; const periods = [...form.custom_periods]; if (!e.target.checked) periods[i] = ""; setForm({ ...form, custom_period_enabled: active, custom_periods: periods }); }} />
                     <input
                       type="number"
+                      aria-label={`Custom Period ${i + 1} Days`}
                       className={cls}
+                      disabled={!form.custom_period_enabled?.[i]}
                       value={v}
                       onChange={(e) => {
                         const a = [...form.custom_periods];

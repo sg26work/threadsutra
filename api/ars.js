@@ -13,22 +13,27 @@ function validateLink(body) {
 }
 
 function validateRule(body) {
-  const required = ['description', 'ars_method', 'vendor_type', 'output_type', 'start_date', 'status', 'frequency'];
   const locations = Array.isArray(body.locations) ? body.locations.filter(Boolean) : (text(body.location) ? [body.location] : []);
-  if (required.some((key) => !text(body[key])) || !locations.length) return 'Rule Description, ARS Method, Vendor Type, Output Type, Location, Start Date, Status and Frequency are required.';
-  if (body.end_date && body.end_date < body.start_date) return 'End Date cannot be before Start Date.';
+  if (!locations.length) return 'Please Enter Location.';
+  if (!text(body.ars_method)) return 'Please Enter ARS Method.';
   if (body.ars_method === 'Min-Max') {
+    if (!text(body.minimum_qty) || !text(body.maximum_qty)) return 'Please Enter Min And Max values.';
     if (!Number.isFinite(Number(body.minimum_qty)) || !Number.isFinite(Number(body.maximum_qty)) || Number(body.minimum_qty) < 0 || Number(body.maximum_qty) <= Number(body.minimum_qty)) return 'Maximum Quantity must be greater than Minimum Quantity.';
   }
-  if (body.ars_method === 'Sales History' && !text(body.ros_period)) return 'ROS Period is required for Sales History.';
-  if (!Array.isArray(body.sku_sets) || !body.sku_sets.length) return 'At least one SKU Set is required.';
+  if (body.ars_method === 'Sales History' && !text(body.ros_period)) return 'Please Enter ROS.';
+  if (!Array.isArray(body.sku_sets) || !body.sku_sets.length) return 'Please Add atleast one SKU Set';
+  if (!text(body.description)) return 'Please Enter Rule Description.';
+  if (!text(body.vendor_type)) return 'Please Enter Vendor Type.';
+  if (!text(body.output_type)) return 'Please Enter Output Type.';
+  if (!text(body.status)) return 'Please Enter Status.';
+  if (!text(body.start_date)) return 'Please Enter Start Date.';
   return '';
 }
 
 function matchesSet(link, sets) {
   return sets.every((set) => {
     const actual = set.type === 'SKU' ? link.sku_code : set.type === 'Brand' ? link.brand : set.type === 'Vendor' ? link.primary_vendor : set.type === 'Hierarchy' ? link.category : link.sku_group;
-    return set.operand === 'Not Equals' ? text(actual) !== text(set.value) : text(actual) === text(set.value);
+    return set.operand === 'Exclude' ? text(actual) !== text(set.value) : text(actual) === text(set.value);
   });
 }
 
@@ -70,10 +75,13 @@ async function runRule(rule) {
     generated.push(poCode);
     executionDetails.push({ location: link.location, sku_code: link.sku_code, vendor: link.primary_vendor, inventory: stock, ars_calculated: quantity, ars_approved: quantity, status: 'Document Created', document_generated: poCode });
   }
-  const nextRun = Number(rule.frequency) > 0 ? addHours(started, Number(rule.frequency)) : '';
+  const frequencyHours = { 1: 720, 2: 1440, 3: 168, 4: 336, 5: 24, 6: 0 };
+  const nextRun = frequencyHours[Number(rule.frequency)] ? addHours(started, frequencyHours[Number(rule.frequency)]) : '';
   await update('ars_rules', rule.id, { last_run_date: today(), next_run_date: nextRun, updated_by: 'ArsSchdulr', updated_date: today() });
   return insert('ars_execution_logs', {
     execution_id: `ARSEX-${Date.now()}`, rule_id: rule.rule_id, description: rule.description, location: locations.join(', '), locations,
+    frequency: rule.frequency, frequency_desc: ({ 1: 'Monthly', 2: 'Bimonthly', 3: 'Weekly', 4: 'Biweekly', 5: 'Daily', 6: 'Never' })[Number(rule.frequency)] || '',
+    vendor_type: rule.vendor_type, output_type: rule.output_type,
     started_at: started.toISOString(), completed_at: new Date().toISOString(), status: 'Document Generated', evaluated_skus: links.length,
     generated_orders: generated.length, generated_po_codes: generated, execution_details: executionDetails, message: generated.length ? `${generated.length} Purchase Order(s) created.` : 'Rule evaluated successfully; no SKU reached its replenishment threshold.',
   });
@@ -231,6 +239,15 @@ export default async function handler(req, res) {
       return res.status(200).json({ gridModel, rows: gridModel, page, records, total });
     }
 
+    if (req.method === 'POST' && entity === 'logs' && ['approve-all', 'process-all'].includes(req.body?.action)) {
+      const log = await findOne(collection, { id: Number(req.body.id) });
+      if (!log) return res.status(404).json({ error: 'ARS Execution Log not found.' });
+      const nextStatus = req.body.action === 'approve-all' ? 'Approved' : 'Document Inprocess';
+      const details = (log.execution_details || []).map((row) => ({ ...row, status: nextStatus, approved_by: req.body.action === 'approve-all' ? 'super admin' : row.approved_by, approved_date: req.body.action === 'approve-all' ? today() : row.approved_date }));
+      const changed = (await update(collection, log.id, { execution_details: details, status: nextStatus }))[0];
+      return res.status(200).json({ jsonMessage: null, count: details.length, log: changed });
+    }
+
     if (req.method === 'POST' && entity === 'links') {
       if (req.body.action === 'import') {
         const rows = Array.isArray(req.body.rows) ? req.body.rows : [];
@@ -260,6 +277,14 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PUT' && entity === 'settings') {
+      const enabled = Array.isArray(req.body.custom_period_enabled) ? req.body.custom_period_enabled : [false, false, false];
+      const periods = Array.isArray(req.body.custom_periods) ? req.body.custom_periods : ['', '', ''];
+      for (let index = 0; index < 3; index += 1) {
+        if (enabled[index] && !text(periods[index])) return res.status(400).json({ error: 'Please Enter Days in Textbox to Make it Active.' });
+        if (text(periods[index]) && (!/^\d+$/.test(text(periods[index])) || Number(periods[index]) < 2 || Number(periods[index]) > 365)) return res.status(400).json({ error: 'Please Enter Days between 2 and 365' });
+      }
+      const activeRos = [req.body.ros_lifetime, req.body.ros_12_weeks, req.body.ros_6_weeks, req.body.ros_1_month, req.body.ros_2_weeks, ...enabled].filter(Boolean).length;
+      if (req.body.enable_ars && activeRos < 2) return res.status(400).json({ error: 'Minimum 2 ROS Calculation parameters should be Active' });
       const current = (await find(collection))[0];
       const payload = { ...req.body, updated_date: today(), updated_by: 'super admin' }; delete payload.entity;
       const rows = current ? await update(collection, current.id, payload) : [await insert(collection, payload)];

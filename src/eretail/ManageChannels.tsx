@@ -70,10 +70,10 @@ export default function ManageChannels() {
   const [saving, setSaving] = useState(false);
 
   // search fields
-  const initialFilters = { channel_code: '', channel_name: '', status: 'Active', channel_type: '', brand_code: '', location: '', fulfilment_status: 'Online', channel_group_code: '' };
+  const initialFilters = { channel_code: '', channel_name: '', status: 'All', channel_type: '', brand_code: '', location: '', fulfilment_status: 'All', channel_group_code: '' };
   const [f, setF] = useState(initialFilters);
 
-  const emptyForm = { channel_code: '', channel_name: '', brand: 'custom', channel_type: 'Marketplace', location: 'UWH-JX Karawaci', status: 'Active', fulfilment_status: 'Online', channel_configured: 'No', client_id: '', auto_range: 'No', channel_sla: '', process_future_order: '', customer_code: '', tax_calculation: '', pickup_slot: '', order_sync: 'No', return_order_sync: 'No', marketplace_invoice: 'No', marketplace_shipping_label: 'No', inventory_sync: '', inventory_min_buffer: '', max_allowed_inventory: '', sync_method: '', inventory_percentage: '', sku_pull_push: '', sku_create_mode: '', address1: '', address2: '', address3: '', pin_code: '', phone: '', gst_tin: '', country: '', state: '', city: '' };
+  const emptyForm = { channel_code: '', channel_name: '', brand: 'custom', channel_type: 'Custom Channel', location: '', status: 'Active', fulfilment_status: 'Online', channel_configured: 'No', client_id: '0', auto_range: 'No', channel_sla: '48', process_future_order: '', customer_code: '', tax_calculation: '', pickup_slot: '', order_sync: 'No', order_sync_from_date: '', order_sync_from_order_no: '', shipping_by: 'Ship By Seller', invoice_no_by: 'Self', prepack_enabled: 'No', ready_to_ship_at: 'Manifest', each_qty_per_line: 'No', return_order_sync: 'No', return_sync_from_date: '', marketplace_invoice: 'No', marketplace_shipping_label: 'No', enable_return_push: 'No', push_item_cancel: 'No', update_invoice_on_manifest: 'Yes', transporter_wise_manifest: 'Yes', enable_otp_cnc: 'Yes', create_rto: 'Yes', restrict_unpack: 'No', inventory_sync: '', inventory_min_buffer: '', max_allowed_inventory: '', sync_method: '', inventory_percentage: '', sku_pull_push: '', sku_create_mode: '', address1: '', address2: '', address3: '', pin_code: '', phone: '', gst_tin: '', country: '', state: '', city: '' };
   const [form, setForm] = useState<any>(emptyForm);
 
   const search = async (nextPage = 1, nextSize = pageSize, filters = f) => {
@@ -151,11 +151,11 @@ export default function ManageChannels() {
           <Field label="Channel Name"><input value={f.channel_name} onChange={(e) => setF({ ...f, channel_name: e.target.value })} className="ci" /></Field>
           <Field label="Client"><select className="ci" defaultValue="-1"><option value="-1">--- Select ---</option><option value="0">0-DummyClient</option></select></Field>
           <Field label="Brand Code"><input value={f.brand_code} onChange={(e) => setF({ ...f, brand_code: e.target.value })} className="ci" /></Field>
-          <Field label="Location"><select value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} className="ci"><option value="">--- Select ---</option>{['UWH-JX Karawaci','Delhi NCR','Mumbai WH','Bengaluru WH'].map((value) => <option key={value}>{value}</option>)}</select></Field>
+          <Field label="Location"><select value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} className="ci"><option value="">--- Select ---</option>{['EXT-bsr','DFC-SANGHVI BEAUTY AND TECHNOLOGIES-LUCKY ENTERPRISES','STA-STAANA','A01-Delhi WH','JAY-Jaipur warehouse','PNG-PNG Warehouse Mongolia','JS1-JS1 Demo','M87-soch.saascart.com','351-Bombay','STO-StoreMore Storage Solutions Private Limited','DWH-Delhi'].map((value) => <option key={value}>{value}</option>)}</select></Field>
           <Field label="Status">
-            <select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} className="ci"><option>All</option><option>Active</option><option>Inactive</option></select>
+            <select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} className="ci"><option>All</option><option>Active</option><option>InActive</option></select>
           </Field>
-          <Field label="Channel Type"><select value={f.channel_type} onChange={(e) => setF({ ...f, channel_type: e.target.value })} className="ci"><option value="">--------------------All--------------------</option>{['AJIO B2C','AJIO Business','AJIO JIT','Amazon India','Amazon UAE','Amazon US','Flipkart','Myntra','Shopify'].map((value) => <option key={value}>{value}</option>)}</select></Field>
+          <Field label="Channel Type"><select value={f.channel_type} onChange={(e) => setF({ ...f, channel_type: e.target.value })} className="ci"><option value="">- - - - - - - - - - -All- - - - - - - - - - -</option>{['AJIO B2C','AJIO Business','AJIO JIT','Amazon FBA India','Amazon Flex India','Amazon India','Amazon SC EasyShip','Amazon SPAPI IND','Custom Channel','Custom Inventory Channel','Flipkart V3(Multi WH)','Myntra B2B (JIT/FBM)','Nykaa Fashion','Shopify IN'].map((value) => <option key={value}>{value}</option>)}</select></Field>
           <Field label="Fulfilment Status">
             <select value={f.fulfilment_status} onChange={(e) => setF({ ...f, fulfilment_status: e.target.value })} className="ci"><option>All</option><option>Online</option><option>Offline</option></select>
           </Field>
@@ -169,32 +169,42 @@ export default function ManageChannels() {
           <thead>
             <tr className="border-b-2 border-slate-200 bg-slate-50 text-slate-600">
               <th className="w-10 px-3 py-3"><input type="checkbox" className="accent-[#2f9e9e]" checked={allChecked} onChange={toggleAll} /></th>
-              <th className="w-20 px-3 py-3"></th>
+              <th className="w-20 px-3 py-3">Client</th>
               <th className="px-3 py-3 text-center text-xs font-semibold uppercase">Channel Code</th>
               <th className="px-3 py-3 text-center text-xs font-semibold uppercase">Channel Name</th>
               <th className="px-3 py-3 text-center text-xs font-semibold uppercase">Fulfilment Status</th>
               <th className="px-3 py-3 text-center text-xs font-semibold uppercase">Status</th>
               <th className="px-3 py-3 text-center text-xs font-semibold uppercase">Location</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold uppercase">Channel Type</th>
               <th className="px-3 py-3 text-center text-xs font-semibold uppercase">Registration Date</th>
               <th className="px-3 py-3 text-center text-xs font-semibold uppercase">Channel Configured</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold uppercase">OrgId</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold uppercase">Last Recon Run Date</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold uppercase">Reconcile</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold uppercase">Error</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan={9} className="px-4 py-16 text-center text-slate-400"><div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-[#2f9e9e]" /><p className="mt-2 text-xs">Loading channels…</p></td></tr>
+              <tr><td colSpan={14} className="px-4 py-16 text-center text-slate-400"><div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-[#2f9e9e]" /><p className="mt-2 text-xs">Loading channels…</p></td></tr>
             ) : pageRows.length === 0 ? (
-              <tr><td colSpan={9} className="px-4 py-16 text-center text-sm text-slate-400">No channels found</td></tr>
+              <tr><td colSpan={14} className="px-4 py-16 text-center text-sm text-slate-400">No channels found</td></tr>
             ) : pageRows.map((r, i) => (
               <tr key={r.id} className={`${i % 2 ? 'bg-slate-50/60' : 'bg-white'} hover:bg-[#eef7fb]`}>
                 <td className="px-3 py-2.5"><input type="checkbox" className="accent-[#2f9e9e]" checked={selected.includes(r.id)} onChange={() => toggle(r.id)} /></td>
-                <td className="px-3 py-2"><BrandLogo brand={r.brand} /></td>
+                <td className="px-3 py-2 text-center text-slate-600">{r.client || 'Default-0'}</td>
                 <td className="px-3 py-2.5 text-center"><button onClick={() => { if (r.brand === 'ajio') navigate('/app/fulfillment/ajio'); if (r.brand === 'amazon') navigate('/app/fulfillment/amazon-mfn'); }} className="font-semibold text-[#2f7fb6] hover:underline">{r.channel_code}</button></td>
                 <td className="px-3 py-2.5 text-slate-700">{r.channel_name}</td>
                 <td className="px-3 py-2.5 text-center"><ArrowTag text={r.fulfilment_status} tone={r.fulfilment_status === 'Online' ? 'green' : 'red'} /></td>
                 <td className="px-3 py-2.5 text-center"><ArrowTag text={r.status} tone={r.status === 'Active' ? 'green' : 'red'} /></td>
                 <td className="px-3 py-2.5 text-center">{r.location === 'View Location(s)' ? <button className="font-medium text-[#2f7fb6] hover:underline">View Location(s)</button> : <span className="text-slate-700">{r.location}</span>}</td>
+                <td className="px-3 py-2.5 text-center text-slate-700">{r.channel_type}</td>
                 <td className="px-3 py-2.5 text-center text-slate-600">{fmtDate(r.registration_date)}</td>
                 <td className="px-3 py-2.5 text-center text-slate-700">{r.channel_configured}</td>
+                <td className="px-3 py-2.5 text-center text-slate-700">{r.org_id || 'USPL'}</td>
+                <td className="px-3 py-2.5 text-center text-slate-600">{r.last_recon_run_date ? fmtDate(r.last_recon_run_date) : ''}</td>
+                <td className="px-3 py-2.5 text-center text-slate-600">{r.reconcile || ''}</td>
+                <td className="px-3 py-2.5 text-center text-red-600">{r.error || ''}</td>
               </tr>
             ))}
           </tbody>
@@ -216,18 +226,19 @@ export default function ManageChannels() {
         </div>
       </div>
 
-      <Modal title="Select Marketplace to Integrate" open={showMarketplace} onClose={() => setShowMarketplace(false)} wide>
-        <div className="grid max-h-[65vh] gap-3 overflow-y-auto p-1 sm:grid-cols-2 lg:grid-cols-4">
+      <Modal title="Channel Create/Edit" open={showMarketplace} onClose={() => setShowMarketplace(false)} wide>
+        <div className="max-h-[65vh] space-y-5 overflow-y-auto p-1">
           {[
-            ['Aceturtle OMS','custom'],['Aceturtle OMS UAT','custom'],['AJIO B2C','ajio'],['AJIO Business','ajio'],['AJIO Business UAT','ajio'],['AJIO DS','ajio'],['AJIO JIT','ajio'],['AJIO JIT UAT','ajio'],
-            ['Amazon FBA India','amazon'],['Amazon Flex India','amazon'],['Amazon SC EasyShip','amazon'],['Amazon Smart (Flex)','amazon'],['Amazon SmartBiz','amazon'],['Amazon SPAPI IND','amazon'],
-            ['ASOS MIRAKL','custom'],['BabyChakra','custom'],['Bajaj Finserve','custom'],['Blinkit','custom'],['CRED','custom'],['Custom Inventory Channel','custom'],['Ebay','custom'],['Flipkart V3(Multi WH)','flipkart'],['Myntra B2B (JIT/FBM)','myntra'],['Nykaa Fashion','nykaa'],['Shopify','shopify'],
-          ].map(([name, brand]) => <button key={name} onClick={() => { setShowMarketplace(false); setForm({ ...emptyForm, channel_name: name, brand }); setShowAdd(true); }} className="flex min-h-20 flex-col items-center justify-center gap-2 rounded border bg-white p-3 text-xs font-semibold text-slate-600 hover:border-[#3b8fc4]"><BrandLogo brand={brand}/>{name}</button>)}
+            ['Select Marketplace to Integrate', [['Aceturtle OMS','custom'],['AJIO B2C','ajio'],['AJIO Business','ajio'],['AJIO JIT','ajio'],['Amazon FBA India','amazon'],['Amazon Flex India','amazon'],['Amazon SC EasyShip','amazon'],['Amazon Smart (Flex)','amazon'],['Amazon SmartBiz','amazon'],['Amazon SPAPI IND','amazon'],['Blinkit','custom'],['Custom Inventory Channel','custom'],['Flipkart V3(Multi WH)','flipkart'],['Myntra B2B (JIT/FBM)','myntra'],['Nykaa Fashion','nykaa']]],
+            ['Select Cart to Integrate', [['Amazon MCF Shopify','amazon'],['BigCommerce','custom'],['Custom Channel','custom'],['Endless Aisle','custom'],['Magento','custom'],['Shopify IN','shopify'],['Shopify UK','shopify'],['Shopify US','shopify'],['WooCommerce','custom']]],
+            ['Select International Marketplace to Integrate', [['Amazon FBA (UAE)','amazon'],['Amazon FBA UK','amazon'],['Amazon FBA US','amazon'],['Amazon SPAPI Australia','amazon'],['Amazon SPAPI Japan','amazon'],['Amazon SPAPI UAE','amazon'],['Ebay UK','custom'],['Ebay US','custom'],['Meesho','meesho'],['Shopee(India) V2','custom'],['TIKTOK(UK) V2','custom']]],
+          ].map(([heading, choices]: any) => <section key={heading}><h3 className="mb-3 bg-[#2585ad] px-3 py-1.5 text-center text-base text-white">{heading}</h3><div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">{choices.map(([name, brand]: string[]) => <button key={name} onClick={() => { setShowMarketplace(false); setForm({ ...emptyForm, channel_name: name, channel_type: name, brand }); setShowAdd(true); }} className="flex min-h-20 flex-col items-center justify-center gap-2 rounded border bg-white p-3 text-xs font-semibold text-slate-600 hover:border-[#3b8fc4]"><BrandLogo brand={brand}/>{name}</button>)}</div></section>)}
         </div>
       </Modal>
 
       {/* Add New modal */}
-      <Modal title="Add New Channel" open={showAdd} onClose={() => setShowAdd(false)} wide>
+      <Modal title="Channel Maintenance" open={showAdd} onClose={() => setShowAdd(false)} wide>
+        <div className="mb-4 flex gap-4 border-b text-sm font-medium text-[#2f7fb6]"><span className="border-b-2 border-[#2f7fb6] pb-2">Channel Maintenance</span><span>User Defined Field</span><button className="ml-auto pb-2" onClick={() => setToast({ msg: 'Configure Interface is available after the channel is saved.', type: 'ok' })}>Configure Interface</button></div>
         <div className="grid grid-cols-2 gap-3">
           <div><label className="lbl">Channel Code</label><input value={form.channel_code} onChange={(e) => setForm({ ...form, channel_code: e.target.value })} className="inp" placeholder="e.g. ABX" /></div>
           <div><label className="lbl">Channel Name</label><input value={form.channel_name} onChange={(e) => setForm({ ...form, channel_name: e.target.value })} className="inp" /></div>
@@ -235,7 +246,7 @@ export default function ManageChannels() {
           <div><label className="lbl">Channel Type</label><select value={form.channel_type} onChange={(e) => setForm({ ...form, channel_type: e.target.value })} className="inp"><option>Marketplace</option><option>Webstore</option><option>Custom Channel</option><option>POS</option></select></div>
           <div><label className="lbl">Location</label><input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="inp" /></div>
           <div><label className="lbl">Fulfilment Status</label><select value={form.fulfilment_status} onChange={(e) => setForm({ ...form, fulfilment_status: e.target.value })} className="inp"><option>Online</option><option>Offline</option></select></div>
-          <div><label className="lbl">Status</label><select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="inp"><option>Active</option><option>Inactive</option></select></div>
+          <div><label className="lbl">Status</label><select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="inp"><option>Active</option><option>InActive</option></select></div>
           <div><label className="lbl">Channel Configured</label><select value={form.channel_configured} onChange={(e) => setForm({ ...form, channel_configured: e.target.value })} className="inp"><option>No</option><option>Yes</option></select></div>
           <div><label className="lbl">Client</label><select value={form.client_id} onChange={(e) => setForm({ ...form, client_id: e.target.value })} className="inp"><option value="">--- Select ---</option><option value="0">0-DummyClient</option></select></div>
           <div><label className="lbl">Auto Range SKU</label><select value={form.auto_range} onChange={(e) => setForm({ ...form, auto_range: e.target.value })} className="inp"><option>No</option><option>Yes</option></select></div>
@@ -243,7 +254,14 @@ export default function ManageChannels() {
           <div><label className="lbl">Process Future Order</label><input type="number" min="0" value={form.process_future_order} onChange={(e) => setForm({ ...form, process_future_order: e.target.value })} className="inp" /></div>
           <div><label className="lbl">Tax Calculation</label><select value={form.tax_calculation} onChange={(e) => setForm({ ...form, tax_calculation: e.target.value })} className="inp"><option value="">--- Select ---</option><option>Tax Inclusive</option><option>Tax Exclusive</option></select></div>
           <div><label className="lbl">Order Sync</label><select value={form.order_sync} onChange={(e) => setForm({ ...form, order_sync: e.target.value })} className="inp"><option>No</option><option>Yes</option></select></div>
+          {form.order_sync === 'Yes' && <><div><label className="lbl">Order Sync From Date</label><input value={form.order_sync_from_date} onChange={(e) => setForm({ ...form, order_sync_from_date: e.target.value })} className="inp" /></div><div><label className="lbl">Sync From Order No</label><input value={form.order_sync_from_order_no} onChange={(e) => setForm({ ...form, order_sync_from_order_no: e.target.value })} className="inp" /></div></>}
+          <div><label className="lbl">Shipping By</label><select value={form.shipping_by} onChange={(e) => setForm({ ...form, shipping_by: e.target.value })} className="inp"><option>Ship By Seller</option></select></div>
+          <div><label className="lbl">Invoice No By</label><select value={form.invoice_no_by} onChange={(e) => setForm({ ...form, invoice_no_by: e.target.value })} className="inp"><option>Self</option></select></div>
+          <div><label className="lbl">PrePack Enabled</label><select value={form.prepack_enabled} onChange={(e) => setForm({ ...form, prepack_enabled: e.target.value })} className="inp"><option>No</option><option>Yes</option></select></div>
+          <div><label className="lbl">Mark Ready To Ship At</label><select value={form.ready_to_ship_at} onChange={(e) => setForm({ ...form, ready_to_ship_at: e.target.value })} className="inp"><option>Manifest</option><option>Pack</option></select></div>
+          <div><label className="lbl">Each Qty Per Line</label><select value={form.each_qty_per_line} onChange={(e) => setForm({ ...form, each_qty_per_line: e.target.value })} className="inp"><option>No</option><option>Yes</option></select></div>
           <div><label className="lbl">Return Order Sync</label><select value={form.return_order_sync} onChange={(e) => setForm({ ...form, return_order_sync: e.target.value })} className="inp"><option>No</option><option>Yes</option></select></div>
+          {form.return_order_sync === 'Yes' && <div><label className="lbl">Return Sync From Date</label><input value={form.return_sync_from_date} onChange={(e) => setForm({ ...form, return_sync_from_date: e.target.value })} className="inp" /></div>}
           <div><label className="lbl">Marketplace Invoice</label><select value={form.marketplace_invoice} onChange={(e) => setForm({ ...form, marketplace_invoice: e.target.value })} className="inp"><option>No</option><option>Yes</option></select></div>
           <div><label className="lbl">Marketplace Shipping Label</label><select value={form.marketplace_shipping_label} onChange={(e) => setForm({ ...form, marketplace_shipping_label: e.target.value })} className="inp"><option>No</option><option>Yes</option></select></div>
           <div><label className="lbl">SKU Pull / Push</label><select value={form.sku_pull_push} onChange={(e) => setForm({ ...form, sku_pull_push: e.target.value })} className="inp"><option value="">--- Select ---</option><option>Pull</option><option>Push</option></select></div>
@@ -258,7 +276,8 @@ export default function ManageChannels() {
         </div>
         <div className="mt-5 flex justify-end gap-2">
           <button onClick={() => setShowAdd(false)} className="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50">Cancel</button>
-          <button onClick={addChannel} disabled={saving} className="rounded-md bg-[#2f9e9e] px-4 py-2 text-sm font-medium text-white hover:brightness-105 disabled:opacity-50">{saving ? 'Saving…' : 'Add Channel'}</button>
+          <button onClick={() => { setShowAdd(false); setShowMarketplace(true); }} className="rounded-md border border-slate-300 px-4 py-2 text-sm text-slate-600">Add New</button>
+          <button onClick={addChannel} disabled={saving} className="rounded-md bg-[#2f9e9e] px-4 py-2 text-sm font-medium text-white hover:brightness-105 disabled:opacity-50">{saving ? 'Saving…' : 'Save'}</button>
         </div>
       </Modal>
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}

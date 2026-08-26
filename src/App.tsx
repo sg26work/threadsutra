@@ -59,6 +59,8 @@ import OrderRefund from "./eretail/masters/OrderRefund";
 import OmsRules from "./eretail/sales/OmsRules";
 import MasterOrderEnquiry from "./eretail/sales/MasterOrderEnquiry";
 import OrderEnquiry from "./eretail/sales/OrderEnquiry";
+import OrderMaintenance from "./eretail/sales/OrderMaintenance";
+import MarketOrderView from "./eretail/sales/MarketOrderView";
 import KittingOrder from "./eretail/sales/KittingOrder";
 import GlobalOrderSearch from "./eretail/sales/GlobalOrderSearch";
 import CodReconciliation from "./eretail/sales/CodReconciliation";
@@ -405,6 +407,8 @@ export default function App() {
             <Route path="/app/m/oms-rules" element={<P><OmsRules /></P>} />
             <Route path="/app/master-order-enquiry" element={<P><MasterOrderEnquiry /></P>} />
             <Route path="/app/order-enquiry" element={<P><OrderEnquiry /></P>} />
+            <Route path="/app/order-maintenance" element={<P><OrderMaintenance /></P>} />
+            <Route path="/app/market-order-view" element={<P><MarketOrderView /></P>} />
             <Route path="/app/m/kitting-order" element={<P><KittingOrder /></P>} />
             <Route path="/app/global-order-search" element={<P><GlobalOrderSearch /></P>} />
             <Route path="/app/cod-reconciliation" element={<P><CodReconciliation /></P>} />
