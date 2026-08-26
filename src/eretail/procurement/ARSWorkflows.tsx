@@ -27,8 +27,8 @@ const LOCATIONS = [
   "Kolkata WH",
   "UPSL Warehouse",
 ];
-const LOCATION_TYPES = ["Franchise", "Store", "Warehouse"];
-const FULFILMENT = ["Direct Store Purchase", "Distribution Centre"];
+const LOCATION_TYPES = [{ value: "6", label: "Franchise" }, { value: "3", label: "Store" }, { value: "2", label: "WH" }];
+const FULFILMENT = ["Direct Store Purchase", "Distribution Center"];
 const ARS_STATUS = ["Pending", "Active", "Inactive", "Discontinued"];
 const RULE_METHODS = ["Min-Max", "Sales History"];
 const VENDOR_TYPES = ["Min Cost", "Min Lead Time", "Primary"];
@@ -227,10 +227,11 @@ function LocationPicker({
 }
 
 export function ARSSkuLocation() {
-  const { requestDownload } = useDownload();
+  const nav = useNavigate();
   const [rows, setRows] = useState<any[]>([]);
   const [skus, setSkus] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -239,26 +240,33 @@ export function ARSSkuLocation() {
   const [searched, setSearched] = useState(false);
   const [show, setShow] = useState(false);
   const [bulk, setBulk] = useState(false);
-  const [importing, setImporting] = useState(false);
   const [advanced, setAdvanced] = useState(false);
   const [hierarchy, setHierarchy] = useState(false);
+  const [hierarchyTarget, setHierarchyTarget] = useState<'search' | 'bulk'>('search');
+  const [vendorPicker, setVendorPicker] = useState(false);
+  const [vendorPickerTarget, setVendorPickerTarget] = useState<'editor' | 'bulk-filter' | 'bulk-update'>('editor');
+  const [vendorFilter, setVendorFilter] = useState({ code: "", name: "" });
   const [notice, setNotice] = useState<Notice>(null);
   const [edit, setEdit] = useState<any>(null);
   const empty = {
     sku_code: "",
     location: "",
-    location_type: "Warehouse",
-    fulfilment_method: "Direct Store Purchase",
+    sku_location_tag: "-1",
+    fulfilment_method: "",
     fulfilment_wh: "",
     wh_lead_time: "",
     primary_vendor: "",
     stock_cover_days: "",
-    ars_flag: "Active",
+    minimum_transfer_qty: "1.00",
+    transfer_unit_factor: "1.00",
+    ars_flag: "",
+    maximum_order_qty: "0.00",
+    is_cico: false,
+    case_size: "",
   };
   const [form, setForm] = useState(empty);
   const [filters, setFilters] = useState({
-    location: "",
-    location_type: "",
+    location: [] as string[],
     sku_code: "",
     category: "",
     brand: "",
@@ -269,29 +277,41 @@ export function ARSSkuLocation() {
     stock_cover_days: "",
     ars_flag: "",
     sku_name: "",
-    sku_location_tag: "",
-    udf1: "",
-    udf2: "",
   });
   const [bulkForm, setBulkForm] = useState({
-    location_type: "",
-    location: "",
+    location_type: "-1",
+    location: "-1",
     category: "",
-    sku_group: "",
+    sku_group: "-1",
     primary_vendor: "",
-    brand: "",
+    brand: "-1",
     sku_code: "",
-    ars_flag: "",
+    minimum_transfer_qty: "1.00",
+    transfer_unit_factor: "1.00",
+    ars_flag: "-1",
     stock_cover_days: "",
-    fulfilment_method: "",
-    fulfilment_wh: "",
+    primary_vendor_update: "",
+    vendor_lead_time: "",
+    fulfilment_method: "-1",
+    fulfilment_wh: "-1",
     wh_lead_time: "",
+    maximum_order_qty: "0.00",
+    sku_location_tag: "-1",
+    case_size: "",
+    is_cico: false,
+    add_new: false,
+    checks: {} as Record<string, boolean>,
   });
+  const locationOptions = locations.map((row) => ({
+    value: String(row.location_code || row.code || row.id || row.location || row.name),
+    label: String(row.location_name || row.name || row.location || row.location_code || row.code),
+  }));
   const loadMasters = () => {
-    Promise.all([apiGet<any[]>("/api/skus"), apiGet<any[]>("/api/vendors")])
-      .then(([skuRows, vendorRows]) => {
+    Promise.all([apiGet<any[]>("/api/skus"), apiGet<any[]>("/api/vendors"), apiGet<any>("/api/locations")])
+      .then(([skuRows, vendorRows, locationData]) => {
         setSkus(skuRows);
         setVendors(vendorRows);
+        setLocations(locationData.rows || []);
       })
       .catch((e) => setNotice({ msg: e.message, type: "err" }))
   };
@@ -301,15 +321,14 @@ export function ARSSkuLocation() {
   const search = async (nextPage = 1, nextSize = pageSize) => {
     setLoading(true); setNotice(null);
     try {
-      const result = await apiSend<any>("/api/ars", "POST", { entity: "links", rows: nextSize, page: nextPage, sidx: "", sord: "asc", clientId: "0", location: filters.location, locationTypeId: filters.location_type, skuCode: filters.sku_code, skuName: filters.sku_name, category: filters.category, brand: filters.brand, primaryVendor: filters.primary_vendor, fullFillmentMethod: filters.fulfilment_method, fullFillmentWH: filters.fulfilment_wh, whLeadTime: filters.wh_lead_time, stockCoverDays: filters.stock_cover_days, arsFlag: filters.ars_flag, skuLocationTag: filters.sku_location_tag, udf1: filters.udf1, udf2: filters.udf2, REQ_SEARCH_FLAG: true });
+      const result = await apiSend<any>("/api/fetchArsAttributes", "POST", { rows: nextSize, page: nextPage, sidx: "", sord: "asc", clientId: "0", location: filters.location.join("\u0017"), sku: filters.sku_code, skuName: filters.sku_name, category: filters.category, brand: filters.brand, primaryVendor: filters.primary_vendor, fullFillmentMethod: filters.fulfilment_method, fullFillmentWh: filters.fulfilment_wh, fullfillmentWhLeadTime: filters.wh_lead_time, stockCoverDays: filters.stock_cover_days, arsFlag: filters.ars_flag, REQ_SEARCH_FLAG: true });
       setRows(result.gridModel || result.rows || []); setPage(result.page); setTotal(result.total); setRecords(result.records); setPageSize(nextSize); setSearched(true);
     } catch (error: any) { setRows([]); setNotice({ msg: error.message, type: "err" }); }
     finally { setLoading(false); }
   };
   const reset = () => {
     setFilters({
-      location: "",
-      location_type: "",
+      location: [],
       sku_code: "",
       category: "",
       brand: "",
@@ -320,9 +339,6 @@ export function ARSSkuLocation() {
       stock_cover_days: "",
       ars_flag: "",
       sku_name: "",
-      sku_location_tag: "",
-      udf1: "",
-      udf2: "",
     });
     setRows([]); setPage(1); setPageSize(20); setRecords(0); setTotal(0); setSearched(false); setAdvanced(false); setNotice(null);
   };
@@ -332,138 +348,88 @@ export function ARSSkuLocation() {
     setShow(true);
   };
   const save = async () => {
+    if (!form.sku_code) return setNotice({ msg: "SkuCode is mandatory", type: "err" });
+    if (edit && !form.transfer_unit_factor) return setNotice({ msg: "Transfer Unit Factor is mandatory", type: "err" });
+    if (edit && !form.minimum_transfer_qty) return setNotice({ msg: "Minimum Transfer Qty is mandatory", type: "err" });
+    if (form.transfer_unit_factor && Number(form.transfer_unit_factor) < 1) return setNotice({ msg: "Transfer Unit Factor cannot be Zero.", type: "err" });
+    if (form.minimum_transfer_qty && Number(form.minimum_transfer_qty) < 1) return setNotice({ msg: "Minimum Transfer Qty cannot be Zero.", type: "err" });
+    if (!form.location) return setNotice({ msg: "Location is mandatory", type: "err" });
+    if (!form.ars_flag) return setNotice({ msg: "ArsFlag is mandatory", type: "err" });
+    if (form.is_cico && !form.case_size) return setNotice({ msg: "Case Size is Mandatory.", type: "err" });
+    if (form.case_size && (!Number.isInteger(Number(form.case_size)) || Number(form.case_size) <= 0)) return setNotice({ msg: "Case Size must be positive integer.", type: "err" });
     try {
-      if (edit)
-        await apiSend("/api/ars", "PUT", {
-          entity: "links",
-          id: edit.id,
-          ...form,
-        });
-      else
-        await apiSend("/api/ars?entity=links", "POST", {
-          entity: "links",
-          ...form,
-        });
-      setNotice({
-        msg: "ARS SKU-Location Link saved successfully.",
-        type: "ok",
+      await apiSend("/api/addAndUpdateArsAttributes", "POST", {
+        id: edit?.id,
+        client: "0",
+        skuCode: form.sku_code,
+        location: form.location,
+        fullFillMentMethod: form.fulfilment_method,
+        fullFillMentWH: form.fulfilment_wh,
+        whLeadTime: form.wh_lead_time,
+        primaryVendor: form.primary_vendor,
+        stockCoverDays: form.stock_cover_days,
+        minimumTransferQty: form.minimum_transfer_qty,
+        transferUnitFactor: form.transfer_unit_factor,
+        arsFlag: form.ars_flag,
+        maximumOrderQty: form.maximum_order_qty || "0",
+        skuLocationTag: form.sku_location_tag,
+        isCICO: form.is_cico ? "1" : "0",
+        caseSize: form.case_size,
       });
+      const successMessage = edit ? "Data Updated successfully." : "ARS Data Adding/Updating in Grid";
       setShow(false);
-      if (searched) void search(1); else setRows([]);
+      if (searched) await search(1); else setRows([]);
+      setNotice({ msg: successMessage, type: "ok" });
     } catch (e: any) {
       setNotice({ msg: e.message, type: "err" });
     }
   };
   const bulkUpdate = async () => {
-    const match: any = {};
-    const fields: any = {};
-    [
-      "location_type",
-      "location",
-      "category",
-      "sku_group",
-      "primary_vendor",
-      "brand",
-      "sku_code",
-    ].forEach((k) => {
-      if ((bulkForm as any)[k]) match[k] = (bulkForm as any)[k];
-    });
-    [
-      "ars_flag",
-      "stock_cover_days",
-      "fulfilment_method",
-      "fulfilment_wh",
-      "wh_lead_time",
-    ].forEach((k) => {
-      if ((bulkForm as any)[k] !== "") fields[k] = (bulkForm as any)[k];
-    });
+    if (!bulkForm.location_type || bulkForm.location_type === "-1") return setNotice({ msg: "Location Type is mandatory", type: "err" });
+    if (bulkForm.transfer_unit_factor && Number(bulkForm.transfer_unit_factor) < 1) return setNotice({ msg: "Transfer Unit Factor cannot be Zero.", type: "err" });
+    if (bulkForm.minimum_transfer_qty && Number(bulkForm.minimum_transfer_qty) < 1) return setNotice({ msg: "Minimum Transfer Qty cannot be Zero.", type: "err" });
+    if (!Object.values(bulkForm.checks).some(Boolean)) return setNotice({ msg: "Select at least one attribute to update", type: "err" });
+    if (bulkForm.add_new && (!bulkForm.ars_flag || bulkForm.ars_flag === "-1")) return setNotice({ msg: "ArsFlag is mandatory", type: "err" });
     try {
-      const changed: any[] = await apiSend("/api/ars", "PUT", {
-        entity: "links",
-        action: "bulk-update",
-        filters: match,
-        fields,
+      const result: any = await apiSend("/api/bulkUpdateArsAttributes", "POST", {
+        client: "0", locationType_bulk: bulkForm.location_type, location_bulk: bulkForm.location,
+        categoryCode: bulkForm.category, skuGroup_bulk: bulkForm.sku_group, vendorCode: bulkForm.primary_vendor,
+        brand_bulk: bulkForm.brand, sku_bulk: bulkForm.sku_code, minimumTransferQty_bulk: bulkForm.minimum_transfer_qty,
+        transferUnitFactor_bulk: bulkForm.transfer_unit_factor, arsFlag_bulk: bulkForm.ars_flag,
+        stockCoverDays_bulk: bulkForm.stock_cover_days, primaryVendor_bulk: bulkForm.primary_vendor_update,
+        vendorLeadTime_bulk: bulkForm.vendor_lead_time, fullfillmentMethod_bulk: bulkForm.fulfilment_method,
+        fullfillmentWH_bulk: bulkForm.fulfilment_wh, whLeadTime_bulk: bulkForm.wh_lead_time,
+        addNewFlag: bulkForm.add_new, maximumOrderQty_bulk: bulkForm.maximum_order_qty,
+        skuLocationTag_bulk: bulkForm.sku_location_tag, caseSize_bulk: bulkForm.case_size,
+        isCICO_ValueCB: bulkForm.is_cico,
+        arsCheckBox: !!bulkForm.checks.ars_flag, stockCoverDaysCheckBox: !!bulkForm.checks.stock_cover_days,
+        primaryVendorCheckBox: !!bulkForm.checks.primary_vendor_update, fullfillmentMethodCheckBox: !!bulkForm.checks.fulfilment_method,
+        fullfillmentWHCheckBox: !!bulkForm.checks.fulfilment_wh, fullfillmentWhLeadTimeCheckBox: !!bulkForm.checks.wh_lead_time,
+        minimumTransferQtyCheckBox: !!bulkForm.checks.minimum_transfer_qty, transferUnitFactorCheckBox: !!bulkForm.checks.transfer_unit_factor,
+        maximumOrderQtyCheckBox: !!bulkForm.checks.maximum_order_qty, skuLocationTagCheckBox: !!bulkForm.checks.sku_location_tag,
+        caseSizeCheckBox: !!bulkForm.checks.case_size, isCICOCheckBox: !!bulkForm.checks.is_cico,
       });
-      setNotice({
-        msg: `${changed.length} ARS SKU-Location Link(s) updated.`,
-        type: "ok",
-      });
-      setBulk(false);
-      if (searched) void search(1); else setRows([]);
+      if (searched) await search(1); else setRows([]);
+      setNotice({ msg: `ARS Location Link updated successfully.${result?.skuLocLinkDTO?.updatedRowCount != null ? ` Updated Count: ${result.skuLocLinkDTO.updatedRowCount}` : ""}`, type: "ok" });
     } catch (e: any) {
       setNotice({ msg: e.message, type: "err" });
     }
   };
-  const parseImport = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const lines = String(reader.result || "")
-          .trim()
-          .split(/\r?\n/);
-        const headers =
-          lines
-            .shift()
-            ?.split(",")
-            .map((x) => x.trim()) || [];
-        const data = lines.map((line) =>
-          Object.fromEntries(
-            line.split(",").map((v, i) => [headers[i], v.trim()]),
-          ),
-        );
-        await apiSend("/api/ars?entity=links", "POST", {
-          entity: "links",
-          action: "import",
-          rows: data,
-        });
-        setNotice({
-          msg: `${data.length} link(s) imported successfully.`,
-          type: "ok",
-        });
-        setImporting(false);
-        if (searched) void search(1); else setRows([]);
-      } catch (e: any) {
-        setNotice({ msg: e.message, type: "err" });
-      }
-    };
-    reader.readAsText(file);
+  const bulkCheck = (key: string) => ({
+    checked: !!bulkForm.checks[key],
+    onChange: (event: React.ChangeEvent<HTMLInputElement>) => setBulkForm({ ...bulkForm, checks: { ...bulkForm.checks, [key]: event.target.checked } }),
+  });
+  const openBulk = () => {
+    setBulkForm({ location_type: '-1', location: '-1', category: '', sku_group: '-1', primary_vendor: '', brand: '-1', sku_code: '', minimum_transfer_qty: '1.00', transfer_unit_factor: '1.00', ars_flag: '-1', stock_cover_days: '', primary_vendor_update: '', vendor_lead_time: '', fulfilment_method: '-1', fulfilment_wh: '-1', wh_lead_time: '', maximum_order_qty: '0.00', sku_location_tag: '-1', case_size: '', is_cico: false, add_new: false, checks: {} });
+    setBulk(true);
   };
-  const exportRows = () =>
-    requestDownload({
-      title: "ARS SKU-Location Link",
-      module: "ars-sku-location",
-      baseName: "ars-sku-location",
-      data: {
-        columns: [
-          "Location",
-          "Location Type",
-          "SKU",
-          "SKU Name",
-          "Category",
-          "Brand",
-          "Primary Vendor",
-          "Fulfilment Method",
-          "Fulfilment WH",
-          "WH Lead Time",
-          "Stock Cover",
-          "ARS Flag",
-        ],
-        rows: rows.map((r) => [
-          r.location,
-          r.location_type,
-          r.sku_code,
-          r.sku_name,
-          r.category,
-          r.brand,
-          r.primary_vendor,
-          r.fulfilment_method,
-          r.fulfilment_wh,
-          r.wh_lead_time,
-          r.stock_cover_days,
-          r.ars_flag,
-        ]),
-      },
-    });
+  const exportRows = async () => {
+    if (!records) return setNotice({ msg: "No data in grid to export", type: "err" });
+    try {
+      await apiSend('/api/downloadArsAttribute', 'POST', { clientId: '0', location: filters.location.join("\u0017"), sku: filters.sku_code, skuName: filters.sku_name, category: filters.category, brand: filters.brand, primaryVendor: filters.primary_vendor, fullFillmentMethod: filters.fulfilment_method, fullFillmentWh: filters.fulfilment_wh, fullfillmentWhLeadTime: filters.wh_lead_time, stockCoverDays: filters.stock_cover_days, arsFlag: filters.ars_flag, REQ_SEARCH_FLAG: true });
+      nav('/app/admin/exports');
+    } catch (error: any) { setNotice({ msg: error.message, type: 'err' }); }
+  };
   return (
     <Shell
       active="procurement"
@@ -475,11 +441,11 @@ export function ARSSkuLocation() {
           <Search size={13} />
           Search
         </Btn>
-        <Btn variant="ghost" onClick={exportRows}>
+        <Btn variant="ghost" onClick={() => void exportRows()}>
           <Download size={13} />
           Download
         </Btn>
-        <Btn variant="ghost" onClick={() => setImporting(true)}>
+        <Btn variant="ghost" onClick={() => nav('/app/admin/common-import?externalImportType=33')}>
           <FileUp size={13} />
           Bulk Import
         </Btn>
@@ -494,83 +460,47 @@ export function ARSSkuLocation() {
           <Plus size={13} />
           Add New
         </Btn>
-        <Btn variant="ghost" onClick={() => setBulk(true)}>
+        <Btn variant="ghost" onClick={openBulk}>
           Bulk Update
         </Btn>
       </Bar>
+      {advanced && <div className="mb-2 border border-slate-300 bg-white p-3"><Field label="SKU Name"><input aria-label="SKU Name search" className={cls} value={filters.sku_name} onChange={(e) => setFilters({ ...filters, sku_name: e.target.value })} /></Field></div>}
       <div className="overflow-auto border border-slate-300 bg-white">
         <table className="min-w-[1500px] w-full">
           <thead>
             <tr>
               {[
-                "Location *",
-                "Location Type",
+                "Location",
                 "SKU",
-                "SKU Name",
                 "Category",
                 "Brand",
                 "Primary Vendor",
-                "Fulfilment Method",
-                "Fulfilment WH",
+                "Fullfillment Method",
+                "Fullfillment WH",
                 "WH Lead Time",
-                "Stock Cover",
+                "Stock cover days",
+                "Minimum Transfer Qty",
+                "Transfer Unit Factor",
                 "ARS Flag",
-                "SKU Location Tag",
-                "UDF1",
-                "UDF2",
                 "",
+                "Maximum SKU Qty",
               ].map((x) => (
                 <Th key={x}>{x}</Th>
               ))}
             </tr>
             <tr>
-              {Object.keys(filters)
-                .filter((k) => advanced || k !== "sku_code")
-                .map((k) => (
-                  <th key={k} className="border-r border-t p-1">
-                    {k === "category" ? (
-                      <button
-                        className={`${cls} text-left`}
-                        onClick={() => setHierarchy(true)}
-                      >
-                        {filters.category || "Select..."}
-                      </button>
-                    ) : k === "location" ? (
-                      <select
-                        className={cls}
-                        value={filters.location}
-                        onChange={(e) =>
-                          setFilters({ ...filters, location: e.target.value })
-                        }
-                      >
-                        <option value="">-- Select --</option>
-                        {LOCATIONS.map((x) => (
-                          <option key={x}>{x}</option>
-                        ))}
-                      </select>
-                    ) : k === "ars_flag" ? (
-                      <select
-                        className={cls}
-                        value={filters.ars_flag}
-                        onChange={(e) =>
-                          setFilters({ ...filters, ars_flag: e.target.value })
-                        }
-                      >
-                        <option value="">-- Select --</option>
-                        <option>Active</option>
-                        <option>Inactive</option>
-                      </select>
-                    ) : (
-                      <input
-                        className={cls}
-                        value={(filters as any)[k]}
-                        onChange={(e) =>
-                          setFilters({ ...filters, [k]: e.target.value })
-                        }
-                      />
-                    )}
-                  </th>
-                ))}
+              <th className="border-r border-t p-1"><select multiple aria-label="Location search" className={`${cls} h-9`} value={filters.location} onChange={(e) => setFilters({ ...filters, location: Array.from(e.target.selectedOptions, (option) => option.value) })}>{(locationOptions.length ? locationOptions : LOCATIONS.map((x) => ({ value: x, label: x }))).map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}</select></th>
+              <th className="border-r border-t p-1"><input aria-label="SKU search" className={cls} value={filters.sku_code} onChange={(e) => setFilters({ ...filters, sku_code: e.target.value })} /></th>
+              <th className="border-r border-t p-1"><button aria-label="Category search" className={`${cls} text-left`} onClick={() => { setHierarchyTarget('search'); setHierarchy(true); }}>{filters.category || "Select..."}</button></th>
+              <th className="border-r border-t p-1"><input aria-label="Brand search" className={cls} value={filters.brand} onChange={(e) => setFilters({ ...filters, brand: e.target.value })} /></th>
+              <th className="border-r border-t p-1"><input aria-label="Primary Vendor search" className={cls} value={filters.primary_vendor} onChange={(e) => setFilters({ ...filters, primary_vendor: e.target.value })} /></th>
+              <th className="border-r border-t p-1"><select aria-label="Fullfillment Method search" className={cls} value={filters.fulfilment_method} onChange={(e) => setFilters({ ...filters, fulfilment_method: e.target.value })}><option value="">--- Select ---</option>{FULFILMENT.map((x) => <option key={x}>{x}</option>)}</select></th>
+              <th className="border-r border-t p-1"><select aria-label="Fullfillment WH search" className={cls} value={filters.fulfilment_wh} onChange={(e) => setFilters({ ...filters, fulfilment_wh: e.target.value })}><option value="">--- Select ---</option>{(locationOptions.length ? locationOptions : LOCATIONS.map((x) => ({ value: x, label: x }))).map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}</select></th>
+              <th className="border-r border-t p-1"><input aria-label="WH Lead Time search" className={cls} value={filters.wh_lead_time} onChange={(e) => setFilters({ ...filters, wh_lead_time: e.target.value })} /></th>
+              <th className="border-r border-t p-1"><input aria-label="Stock cover days search" className={cls} value={filters.stock_cover_days} onChange={(e) => setFilters({ ...filters, stock_cover_days: e.target.value })} /></th>
+              <th className="border-r border-t p-1"/><th className="border-r border-t p-1"/>
+              <th className="border-r border-t p-1"><select aria-label="ARS Flag search" className={cls} value={filters.ars_flag} onChange={(e) => setFilters({ ...filters, ars_flag: e.target.value })}><option value="">--- Select ---</option><option value="1">Active</option><option value="0">InActive</option></select></th>
+              <th className="border-r border-t p-1"/><th className="border-r border-t p-1"/>
             </tr>
           </thead>
           <tbody>
@@ -582,11 +512,9 @@ export function ARSSkuLocation() {
               rows.map((r) => (
                 <tr key={r.id}>
                   <Td>{r.location}</Td>
-                  <Td>{r.location_type}</Td>
                   <Td>
                     <b>{r.sku_code}</b>
                   </Td>
-                  <Td>{r.sku_name}</Td>
                   <Td>{r.category}</Td>
                   <Td>{r.brand}</Td>
                   <Td>{r.primary_vendor}</Td>
@@ -594,17 +522,16 @@ export function ARSSkuLocation() {
                   <Td>{r.fulfilment_wh}</Td>
                   <Td>{r.wh_lead_time}</Td>
                   <Td>{r.stock_cover_days}</Td>
+                  <Td>{r.minimum_transfer_qty}</Td>
+                  <Td>{r.transfer_unit_factor}</Td>
                   <Td>
                     <Status value={r.ars_flag} />
                   </Td>
-                  <Td>{r.sku_location_tag}</Td>
-                  <Td>{r.udf1}</Td>
-                  <Td>{r.udf2}</Td>
                   <Td>
                     <button
                       onClick={() => {
                         setEdit(r);
-                        setForm({ ...empty, ...r });
+                        setForm({ ...empty, ...r, location: r.location_id || r.location, fulfilment_wh: r.fulfilment_wh_id || r.fulfilment_wh, ars_flag: r.ars_flag === "Active" ? "1" : r.ars_flag === "Inactive" || r.ars_flag === "InActive" ? "0" : r.ars_flag });
                         setShow(true);
                       }}
                       className="text-amber-500"
@@ -612,10 +539,11 @@ export function ARSSkuLocation() {
                       ✎
                     </button>
                   </Td>
+                  <Td>{r.maximum_order_qty}</Td>
                 </tr>
               ))
             ) : (
-              <tr><td colSpan={16} className="p-8 text-center text-xs text-slate-400">No records to view</td></tr>
+              <tr><td colSpan={14} className="p-8 text-center text-xs text-slate-400">No records to view</td></tr>
             )}
           </tbody>
         </table>
@@ -630,7 +558,7 @@ export function ARSSkuLocation() {
       <HierarchyPicker
         open={hierarchy}
         onClose={() => setHierarchy(false)}
-        onPick={(v) => setFilters({ ...filters, category: v })}
+        onPick={(v) => hierarchyTarget === 'search' ? setFilters({ ...filters, category: v }) : setBulkForm({ ...bulkForm, category: v })}
       />
       <Modal
         title="Create/Update ARS Sku-Location"
@@ -639,22 +567,19 @@ export function ARSSkuLocation() {
       >
         <div className="grid gap-3">
           <Field label="SKU" required>
-            <select
+            <input
+              aria-label="SKU"
               className={cls}
+              list="ars-sku-options"
               value={form.sku_code}
               disabled={!!edit}
               onChange={(e) => setForm({ ...form, sku_code: e.target.value })}
-            >
-              <option value="">-- Select --</option>
-              {skus.map((s) => (
-                <option key={s.id} value={s.sku_code}>
-                  {s.sku_code} — {s.name}
-                </option>
-              ))}
-            </select>
+            />
+            <datalist id="ars-sku-options">{skus.map((s) => <option key={s.id} value={s.sku_code}>{s.name}</option>)}</datalist>
           </Field>
           <Field label="SKU Name">
             <input
+              aria-label="SKU Name"
               className={`${cls} bg-slate-100`}
               disabled
               value={
@@ -664,8 +589,15 @@ export function ARSSkuLocation() {
               }
             />
           </Field>
+          <Field label="SKU-Location Tag">
+            <select aria-label="SKU-Location Tag" className={cls} value={form.sku_location_tag} onChange={(e) => setForm({ ...form, sku_location_tag: e.target.value })}>
+              <option value="-1">--- Select ---</option>
+              {["TAG1", "TAG10", "TAG2", "TAG3", "TAG4", "TAG5", "TAG6", "TAG7", "TAG8", "TAG9"].map((tag) => <option key={tag}>{tag}</option>)}
+            </select>
+          </Field>
           <Field label="Location" required>
             <select
+              aria-label="Location"
               className={cls}
               value={form.location}
               disabled={!!edit}
@@ -677,41 +609,41 @@ export function ARSSkuLocation() {
                 })
               }
             >
-              <option value="">-- Select --</option>
-              {LOCATIONS.map((x) => (
-                <option key={x}>{x}</option>
-              ))}
+              <option value="">--- Select ---</option>
+              {(locationOptions.length ? locationOptions : LOCATIONS.map((x) => ({ value: x, label: x }))).map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}
             </select>
           </Field>
-          <Field label="Fulfilment Method">
+          <Field label="Fullfillment Method">
             <select
+              aria-label="Fullfillment Method"
               className={cls}
               value={form.fulfilment_method}
               onChange={(e) =>
                 setForm({ ...form, fulfilment_method: e.target.value })
               }
             >
+              <option value="">--- Select ---</option>
               {FULFILMENT.map((x) => (
                 <option key={x}>{x}</option>
               ))}
             </select>
           </Field>
-          <Field label="Fulfilment WH">
+          <Field label="Fullfillment WH">
             <select
+              aria-label="Fullfillment WH"
               className={cls}
               value={form.fulfilment_wh}
               onChange={(e) =>
                 setForm({ ...form, fulfilment_wh: e.target.value })
               }
             >
-              <option value="">-- Select --</option>
-              {LOCATIONS.map((x) => (
-                <option key={x}>{x}</option>
-              ))}
+              <option value="">--- Select ---</option>
+              {(locationOptions.length ? locationOptions : LOCATIONS.map((x) => ({ value: x, label: x }))).map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}
             </select>
           </Field>
           <Field label="WH Lead Time(In Days)">
             <input
+              aria-label="WH Lead Time(In Days)"
               type="number"
               min="0"
               className={cls}
@@ -722,23 +654,11 @@ export function ARSSkuLocation() {
             />
           </Field>
           <Field label="Primary Vendor">
-            <select
-              className={cls}
-              value={form.primary_vendor}
-              onChange={(e) =>
-                setForm({ ...form, primary_vendor: e.target.value })
-              }
-            >
-              <option value="">-- Select --</option>
-              {vendors.map((v) => (
-                <option key={v.id} value={v.vendor_code}>
-                  {v.vendor_code} — {v.vendor_name}
-                </option>
-              ))}
-            </select>
+            <div className="flex gap-1"><input aria-label="Primary Vendor" className={cls} value={form.primary_vendor} onChange={(e) => setForm({ ...form, primary_vendor: e.target.value })} /><button aria-label="Open Primary Vendor picker" className="rounded border px-3" onClick={() => { setVendorPickerTarget('editor'); setVendorPicker(true); }}>...</button></div>
           </Field>
-          <Field label="Stock Cover Days">
+          <Field label="Stock cover days">
             <input
+              aria-label="Stock cover days"
               type="number"
               min="0"
               className={cls}
@@ -748,15 +668,26 @@ export function ARSSkuLocation() {
               }
             />
           </Field>
+          <Field label="Minimum Transfer Qty">
+            <input aria-label="Minimum Transfer Qty" type="number" className={cls} value={form.minimum_transfer_qty} onChange={(e) => setForm({ ...form, minimum_transfer_qty: e.target.value })} />
+          </Field>
+          <Field label="Transfer Unit Factor">
+            <input aria-label="Transfer Unit Factor" type="number" className={cls} value={form.transfer_unit_factor} onChange={(e) => setForm({ ...form, transfer_unit_factor: e.target.value })} />
+          </Field>
           <Field label="ARS Flag" required>
             <select
+              aria-label="ARS Flag"
               className={cls}
               value={form.ars_flag}
               onChange={(e) => setForm({ ...form, ars_flag: e.target.value })}
             >
-              <option>Active</option>
-              <option>Inactive</option>
+              <option value="">--- Select ---</option>
+              <option value="1">Active</option>
+              <option value="0">InActive</option>
             </select>
+          </Field>
+          <Field label="Maximum SKU Qty">
+            <input aria-label="Maximum SKU Qty" type="number" className={cls} value={form.maximum_order_qty} onChange={(e) => setForm({ ...form, maximum_order_qty: e.target.value })} />
           </Field>
         </div>
         <div className="mt-4 flex justify-end gap-2">
@@ -766,28 +697,30 @@ export function ARSSkuLocation() {
           </Btn>
         </div>
       </Modal>
+      <Modal title="Brand List" open={vendorPicker} onClose={() => setVendorPicker(false)} wide>
+        <div className="max-h-[430px] overflow-auto border"><table className="w-full"><thead><tr><Th>Vendor</Th><Th>Vendor Name</Th></tr><tr><th className="p-1"><input aria-label="Vendor code filter" className={cls} value={vendorFilter.code} onChange={(e) => setVendorFilter({ ...vendorFilter, code: e.target.value })} /></th><th className="p-1"><input aria-label="Vendor name filter" className={cls} value={vendorFilter.name} onChange={(e) => setVendorFilter({ ...vendorFilter, name: e.target.value })} /></th></tr></thead><tbody>{vendors.filter((v) => (!vendorFilter.code || String(v.vendor_code || "").toLowerCase().includes(vendorFilter.code.toLowerCase())) && (!vendorFilter.name || String(v.vendor_name || "").toLowerCase().includes(vendorFilter.name.toLowerCase()))).map((v) => <tr key={v.id}><Td><button className="text-blue-700 underline" onClick={() => { if (vendorPickerTarget === 'editor') setForm({ ...form, primary_vendor: v.vendor_code }); else if (vendorPickerTarget === 'bulk-filter') setBulkForm({ ...bulkForm, primary_vendor: v.vendor_code }); else setBulkForm({ ...bulkForm, primary_vendor_update: v.vendor_code }); setVendorPicker(false); }}>{v.vendor_code}</button></Td><Td>{v.vendor_name}</Td></tr>)}</tbody></table></div>
+        <div className="mt-4 flex justify-end gap-2"><Btn variant="ghost" onClick={() => setVendorPicker(false)}>Close</Btn><Btn onClick={() => setVendorPicker(false)}>OK</Btn></div>
+      </Modal>
       <Modal
-        title="Bulk Update ARS SKU-Location"
+        title="Bulk Update"
         open={bulk}
         onClose={() => setBulk(false)}
         wide
       >
-        <p className="mb-2 text-xs text-slate-500">
-          Select matching criteria, then enter only the fields that should
-          change.
-        </p>
+        <h3 className="mb-2 border-b pb-2 text-sm font-semibold">Update Filter</h3>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Location Type">
             <select
+              aria-label="Location Type"
               className={cls}
               value={bulkForm.location_type}
               onChange={(e) =>
                 setBulkForm({ ...bulkForm, location_type: e.target.value })
               }
             >
-              <option value="">All</option>
+              <option value="-1">--- Select ---</option>
               {LOCATION_TYPES.map((x) => (
-                <option key={x}>{x}</option>
+                <option key={x.value} value={x.value}>{x.label}</option>
               ))}
             </select>
           </Field>
@@ -799,47 +732,21 @@ export function ARSSkuLocation() {
                 setBulkForm({ ...bulkForm, location: e.target.value })
               }
             >
-              <option value="">All</option>
-              {LOCATIONS.map((x) => (
-                <option key={x}>{x}</option>
-              ))}
+              <option value="-1">--- Select ---</option>
+              {(locationOptions.length ? locationOptions : LOCATIONS.map((x) => ({value:x,label:x}))).map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}
             </select>
           </Field>
           <Field label="Category">
-            <input
-              className={cls}
-              value={bulkForm.category}
-              onChange={(e) =>
-                setBulkForm({ ...bulkForm, category: e.target.value })
-              }
-            />
+            <div className="flex gap-1"><input className={cls} value={bulkForm.category} readOnly/><button aria-label="Open Bulk Category picker" className="rounded border px-3" onClick={() => { setHierarchyTarget('bulk'); setHierarchy(true); }}>...</button></div>
           </Field>
           <Field label="SKU Group">
-            <input
-              className={cls}
-              value={bulkForm.sku_group}
-              onChange={(e) =>
-                setBulkForm({ ...bulkForm, sku_group: e.target.value })
-              }
-            />
+            <select className={cls} value={bulkForm.sku_group} onChange={(e) => setBulkForm({ ...bulkForm, sku_group: e.target.value })}><option value="-1">--- Select ---</option>{[...new Set(skus.map((sku) => sku.sku_group).filter(Boolean))].map((group) => <option key={group}>{group}</option>)}</select>
           </Field>
           <Field label="Vendor">
-            <input
-              className={cls}
-              value={bulkForm.primary_vendor}
-              onChange={(e) =>
-                setBulkForm({ ...bulkForm, primary_vendor: e.target.value })
-              }
-            />
+            <div className="flex gap-1"><input className={cls} value={bulkForm.primary_vendor} onChange={(e) => setBulkForm({ ...bulkForm, primary_vendor: e.target.value })}/><button aria-label="Open Bulk Vendor picker" className="rounded border px-3" onClick={() => { setVendorPickerTarget('bulk-filter'); setVendorPicker(true); }}>...</button></div>
           </Field>
           <Field label="Brand">
-            <input
-              className={cls}
-              value={bulkForm.brand}
-              onChange={(e) =>
-                setBulkForm({ ...bulkForm, brand: e.target.value })
-              }
-            />
+            <select className={cls} value={bulkForm.brand} onChange={(e) => setBulkForm({ ...bulkForm, brand: e.target.value })}><option value="-1">--- Select ---</option>{[...new Set(skus.map((sku) => sku.brand).filter(Boolean))].map((brand) => <option key={brand}>{brand}</option>)}</select>
           </Field>
           <Field label="SKU">
             <input
@@ -851,96 +758,23 @@ export function ARSSkuLocation() {
             />
           </Field>
           <hr className="col-span-2" />
-          <Field label="ARS Flag">
-            <select
-              className={cls}
-              value={bulkForm.ars_flag}
-              onChange={(e) =>
-                setBulkForm({ ...bulkForm, ars_flag: e.target.value })
-              }
-            >
-              <option value="">No change</option>
-              <option>Active</option>
-              <option>Inactive</option>
-            </select>
-          </Field>
-          <Field label="Stock Cover Days">
-            <input
-              className={cls}
-              type="number"
-              value={bulkForm.stock_cover_days}
-              onChange={(e) =>
-                setBulkForm({ ...bulkForm, stock_cover_days: e.target.value })
-              }
-            />
-          </Field>
-          <Field label="Fulfilment Method">
-            <select
-              className={cls}
-              value={bulkForm.fulfilment_method}
-              onChange={(e) =>
-                setBulkForm({ ...bulkForm, fulfilment_method: e.target.value })
-              }
-            >
-              <option value="">No change</option>
-              {FULFILMENT.map((x) => (
-                <option key={x}>{x}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Fulfilment WH">
-            <select
-              className={cls}
-              value={bulkForm.fulfilment_wh}
-              onChange={(e) =>
-                setBulkForm({ ...bulkForm, fulfilment_wh: e.target.value })
-              }
-            >
-              <option value="">No change</option>
-              {LOCATIONS.map((x) => (
-                <option key={x}>{x}</option>
-              ))}
-            </select>
-          </Field>
-          <Field label="WH Lead Time(In Days)">
-            <input
-              className={cls}
-              type="number"
-              value={bulkForm.wh_lead_time}
-              onChange={(e) =>
-                setBulkForm({ ...bulkForm, wh_lead_time: e.target.value })
-              }
-            />
-          </Field>
+          <label className="col-span-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={bulkForm.add_new} onChange={(e) => setBulkForm({ ...bulkForm, add_new: e.target.checked })}/> Add New</label>
+          <Field label="ARS Flag"><div className="flex gap-2"><input aria-label="Update ARS Flag" type="checkbox" {...bulkCheck('ars_flag')}/><select className={cls} value={bulkForm.ars_flag} onChange={(e) => setBulkForm({ ...bulkForm, ars_flag: e.target.value })}><option value="-1">--- Select ---</option><option value="1">Active</option><option value="0">InActive</option></select></div></Field>
+          <Field label="Stock Cover Days"><div className="flex gap-2"><input aria-label="Update Stock Cover Days" type="checkbox" {...bulkCheck('stock_cover_days')}/><input className={cls} value={bulkForm.stock_cover_days} onChange={(e) => setBulkForm({ ...bulkForm, stock_cover_days: e.target.value })}/></div></Field>
+          <Field label="Primary Vendor"><div className="flex gap-2"><input aria-label="Update Primary Vendor" type="checkbox" {...bulkCheck('primary_vendor_update')}/><input className={cls} value={bulkForm.primary_vendor_update} onChange={(e) => setBulkForm({ ...bulkForm, primary_vendor_update: e.target.value })}/><button aria-label="Open Bulk Primary Vendor picker" className="rounded border px-3" onClick={() => { setVendorPickerTarget('bulk-update'); setVendorPicker(true); }}>...</button></div></Field>
+          <Field label="SKU-Location Tag"><div className="flex gap-2"><input aria-label="Update SKU-Location Tag" type="checkbox" {...bulkCheck('sku_location_tag')}/><select className={cls} value={bulkForm.sku_location_tag} onChange={(e) => setBulkForm({ ...bulkForm, sku_location_tag: e.target.value })}><option value="-1">--- Select ---</option>{["TAG1","TAG10","TAG2","TAG3","TAG4","TAG5","TAG6","TAG7","TAG8","TAG9"].map((tag) => <option key={tag}>{tag}</option>)}</select></div></Field>
+          <Field label="Is CICO"><div className="flex gap-2"><input aria-label="Update Is CICO" type="checkbox" {...bulkCheck('is_cico')}/><input aria-label="Is CICO value" type="checkbox" checked={bulkForm.is_cico} onChange={(e) => setBulkForm({ ...bulkForm, is_cico: e.target.checked })}/></div></Field>
+          <Field label="Case Size"><div className="flex gap-2"><input aria-label="Update Case Size" type="checkbox" {...bulkCheck('case_size')}/><input className={cls} value={bulkForm.case_size} onChange={(e) => setBulkForm({ ...bulkForm, case_size: e.target.value })}/></div></Field>
+          <Field label="Fullfillment Method"><div className="flex gap-2"><input aria-label="Update Fullfillment Method" type="checkbox" {...bulkCheck('fulfilment_method')}/><select className={cls} value={bulkForm.fulfilment_method} onChange={(e) => setBulkForm({ ...bulkForm, fulfilment_method: e.target.value })}><option value="-1">--- Select ---</option>{FULFILMENT.map((x) => <option key={x}>{x}</option>)}</select></div></Field>
+          <Field label="Fullfillment WH"><div className="flex gap-2"><input aria-label="Update Fullfillment WH" type="checkbox" {...bulkCheck('fulfilment_wh')}/><select className={cls} value={bulkForm.fulfilment_wh} onChange={(e) => setBulkForm({ ...bulkForm, fulfilment_wh: e.target.value })}><option value="-1">--- Select ---</option>{(locationOptions.length ? locationOptions : LOCATIONS.map((x) => ({value:x,label:x}))).map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}</select></div></Field>
+          <Field label="WH Lead Time(In Days)"><div className="flex gap-2"><input aria-label="Update WH Lead Time" type="checkbox" {...bulkCheck('wh_lead_time')}/><input className={cls} value={bulkForm.wh_lead_time} onChange={(e) => setBulkForm({ ...bulkForm, wh_lead_time: e.target.value })}/></div></Field>
+          <Field label="Minimum Transfer Qty"><div className="flex gap-2"><input aria-label="Update Minimum Transfer Qty" type="checkbox" {...bulkCheck('minimum_transfer_qty')}/><input className={cls} value={bulkForm.minimum_transfer_qty} onChange={(e) => setBulkForm({ ...bulkForm, minimum_transfer_qty: e.target.value })}/></div></Field>
+          <Field label="Transfer Unit Factor"><div className="flex gap-2"><input aria-label="Update Transfer Unit Factor" type="checkbox" {...bulkCheck('transfer_unit_factor')}/><input className={cls} value={bulkForm.transfer_unit_factor} onChange={(e) => setBulkForm({ ...bulkForm, transfer_unit_factor: e.target.value })}/></div></Field>
+          <Field label="Maximum SKU Qty"><div className="flex gap-2"><input aria-label="Update Maximum SKU Qty" type="checkbox" {...bulkCheck('maximum_order_qty')}/><input className={cls} value={bulkForm.maximum_order_qty} onChange={(e) => setBulkForm({ ...bulkForm, maximum_order_qty: e.target.value })}/></div></Field>
         </div>
         <div className="mt-4 flex justify-end gap-2">
           <Btn onClick={bulkUpdate}>Update</Btn>
           <Btn variant="ghost" onClick={() => setBulk(false)}>
-            Close
-          </Btn>
-        </div>
-      </Modal>
-      <Modal
-        title="Bulk Import ARS SKU-Location"
-        open={importing}
-        onClose={() => setImporting(false)}
-      >
-        <p className="mb-3 text-xs text-slate-500">
-          CSV headers: sku_code, location, location_type, fulfilment_method,
-          fulfilment_wh, wh_lead_time, primary_vendor, stock_cover_days,
-          ars_flag. Maximum 2000 rows.
-        </p>
-        <input
-          aria-label="ARS CSV file"
-          type="file"
-          accept=".csv,text/csv"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) parseImport(f);
-          }}
-        />
-        <div className="mt-4 flex justify-end">
-          <Btn variant="ghost" onClick={() => setImporting(false)}>
             Close
           </Btn>
         </div>

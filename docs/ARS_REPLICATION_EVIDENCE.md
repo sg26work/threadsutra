@@ -1,38 +1,35 @@
 # ARS (Procurement) Replication Evidence
 
-Authoritative source inspected: `Vin eRetail _ ARS (procurement) – Vinculum Product Guide.pdf` (7 pages). All pages were text-extracted and visually reviewed before implementation. No ARS workflow videos were supplied with this request, so nothing below is claimed as video-verified.
+Historical source used by the original implementation: `Vin eRetail _ ARS (procurement) – Vinculum Product Guide.pdf` (7 pages). That guide is not present in the current workspace and is not a substitute for authenticated LIVE evidence.
+
+Current verification boundary (2026-08-26): **ARS SKU-Location Link is authenticated-live inspected and locally verified. ARS Rules, ARS Execution Log, and B2B ARS/ROS Settings remain unverified.** Their existing guide-derived implementation must not be treated as proof of LIVE parity.
 
 ## 1. Modules replicated
 
 | Module | Route | Implemented surface |
 |---|---|---|
-| ARS SKU-Location Link | `/app/procurement/ars/sku-location` | enquiry, filters, advanced SKU search, category picker, add/edit, download, CSV bulk import, bulk update, reset, status display |
-| ARS Rules | `/app/procurement/ars/rules` | enquiry, filters, rule grid, create/edit, conditional Min-Max/Sales History fields, SKU sets, save, confirm, delete guard, Run Now, View Log |
-| ARS Execution Log | `/app/procurement/ars/logs` | searchable execution history, evaluation/order counts and generated-PO detail |
-| B2B ARS/ROS Settings | `/app/procurement/ars/settings` | Enable ARS, ROS Calculation Hour, standard periods and three custom periods |
+| ARS SKU-Location Link | `/app/procurement/ars/sku-location` | **VERIFIED:** authenticated live handlers/UI/API/validation; local add/edit/bulk persistence; Common Import type 33; Pending Report download; Playwright/typecheck/build/second comparison |
+| ARS Rules | `/app/procurement/ars/rules` | **UNVERIFIED:** guide-derived local implementation; authenticated live recursive inspection still required |
+| ARS Execution Log | `/app/procurement/ars/logs` | **UNVERIFIED:** guide-derived local implementation; authenticated live recursive inspection still required |
+| B2B ARS/ROS Settings | `/app/procurement/ars/settings` | **UNVERIFIED:** guide-derived local implementation; authenticated live recursive inspection still required |
 
-## 2. Workflows replicated
+## 2. Local workflows and verification status
 
 1. Create or edit a SKU-location link, resolving SKU name/category/brand from SKU Master and validating SKU existence.
-2. Search/filter links, open the hierarchy picker, reset, export, import CSV, or bulk-update matching links.
-3. Create a rule with required metadata and one or more typed/operand SKU-set conditions.
-4. Switch ARS Method between Min-Max and Sales History and apply the corresponding quantity/ROS fields.
-5. Save a Pending rule, confirm it to Active, and prevent invalid confirmation/deletion/run transitions.
-6. Run an active, in-date rule only while ARS is enabled; evaluate active SKU-location links and inventory; create downstream Purchase Orders; update last/next run; persist an execution log.
-7. Open execution-log details and trace generated Purchase Order numbers.
-8. Configure ARS and ROS periods used by Sales History rule creation.
+2. Search/filter links, open the hierarchy picker, reset, request a Pending Report download, route Bulk Import to Common Import type 33, or checkbox-gate bulk-update matching links.
+3. The local code also contains rule creation, Min-Max/Sales History fields, SKU sets, save/confirm/delete/run, execution logs, and ROS settings. **These workflows are guide-derived and are not authenticated-live verified.**
 
 ## 3. Documentation-to-video discrepancy matrix
 
 | Evidence item | Documentation | Video evidence | Resolution |
 |---|---|---|---|
 | Workflow recordings | Guide describes ARS screens and behavior | No ARS videos were supplied | Guide treated as sole authority; no video-level fidelity claim |
-| Output Type count | Says three types are available | Only `Confirmed` and `Pending` are listed | Implemented only the two named values; no third value invented |
-| Fulfilment terminology | Uses `Fulfilment`, `Fullfillment`, and `fulfilment warehouse` variants | None | UI uses `Fulfilment`, matching the clearest labels/screenshots |
+| Output Type count | Historical guide notes are internally inconsistent | No current authenticated evidence | Local currently contains `Confirmed`, `Pending`, and `Report`; this must be checked against LIVE before acceptance |
+| Fulfilment terminology | Uses `Fulfilment`, `Fullfillment`, and `fulfilment warehouse` variants | SKU-Location LIVE uses `Fullfillment` | SKU-Location now follows LIVE; Rules remains unverified |
 | Rules navigation | Narrative says Procurement > ARS; screenshots/breadcrumb context show Setup > ARS Rules | None | Menu remains under Procurement > Setup > ARS while editor breadcrumb preserves Setup wording |
 | Frequency | Described as execution interval; screenshot examples show values such as 2 Hours/6 Hours | None | Stored as hours with Never, Hourly, Every 2 Hours, Daily and Weekly labels |
 | Execution Log | Named as an ARS section | No fields or layout documented | Implemented only an evidence-supported audit grid; exact layout remains unverified |
-| Bulk Import | Button/screenshot is shown | File schema is not documented | Implemented CSV with visible supported headers and 2,000-row safety limit; schema is an implementation necessity |
+| Bulk Import | Button/screenshot is shown | Authenticated handler opens `vendorImportDisplayBS?externalImportType=33` | Local routes to Common Import type 33; the earlier guessed CSV dialog was removed |
 
 ## 4. APIs, database, and data mappings
 
@@ -47,11 +44,12 @@ Authoritative source inspected: `Vin eRetail _ ARS (procurement) – Vinculum Pr
 
 The development server uses the repository's existing in-memory fallback when `MONGODB_URI` is absent; the same handlers use MongoDB when configured.
 
-## 5. Validations and business rules implemented
+## 5. Local validations and business rules
 
 - SKU, Location and ARS Flag are mandatory; SKU must exist; duplicate SKU-location pairs are rejected.
 - Lead time and stock-cover days must be non-negative.
-- Rule Description, Method, Vendor Type, Output Type, Location, Start Date, Status, Frequency and at least one SKU Set are mandatory.
+- The remaining rule, execution, and settings bullets below describe current local behavior only; they are not evidence of LIVE parity.
+- Rule Description, Method, Vendor Type, Output Type, Location, Start Date, Status, Frequency and at least one SKU Set are mandatory locally.
 - End Date cannot precede Start Date; Min-Max maximum must exceed minimum; Sales History requires an enabled ROS period.
 - Only Pending rules can be confirmed or deleted. Only Active, in-date rules can run.
 - Global Enable ARS blocks execution when off.
@@ -63,19 +61,19 @@ The development server uses the repository's existing in-memory fallback when `M
 
 All ARS routes use the application's existing authenticated `ProtectedRoute`. The guide identifies a logged-in user but provides no role/action permission matrix, so no undocumented fine-grained roles were invented. Created/updated audit fields retain the signed-in demo/admin convention already used by the replica.
 
-## 7. Test cases executed
+## 7. Current verified test evidence
 
 - `npm run typecheck`: passed.
 - `npm run build`: passed (Vite warns that Node 20.14 is below its preferred 20.19 and that the main bundle exceeds 500 kB).
-- Targeted ESLint on the ARS/API/routing files: passed after replacing the pre-existing untyped menu icon with `LucideIcon`.
-- Repository-wide `npm run lint`: did not pass because the existing codebase has 248 errors and 4 warnings outside this ARS change (primarily pre-existing `any`, effect-state and refresh-export findings); the targeted ARS set is clean.
-- API verification: 11 assertions passed, including create link/rule, duplicate rejection, invalid Min-Max rejection, blocked Pending run, Pending-to-Active confirmation, generated confirmed PO quantity 10, active-delete rejection, disabled-ARS rejection and log-to-PO linkage.
-- Browser verification at 2560×1440: all four routes and their required labels passed; Add SKU-Location, Bulk Update, conditional Min-Max fields, Add SKU Set and settings were exercised.
-- Visual screenshots inspected: `/tmp/ars-browser-sku-location-editor.png`, `/tmp/ars-browser-rule-editor.png`, `/tmp/ars-browser-settings.png`.
+- Historical rule/API tests may exercise the guide-derived local behavior, but they do not establish authenticated LIVE parity for Rules, Execution Log, or Settings.
+- `npm run test:ars-sku-location` against a freshly restarted isolated server: passed. It verifies the live-named search request/response, exact grid, reset/advanced search, exact validation, add/edit/bulk persistence across reload, download-to-Pending-Report, Common Import type 33, pagination, console, and API status.
+- Direct persistent handler verification for `addAndUpdateArsAttributes`, `fetchArsAttributes`, `bulkUpdateArsAttributes`, and `downloadArsAttribute`: passed.
+- Post-fix authenticated LIVE/local comparison: toolbar order, visible grid columns, TAG ordering, fulfilment-method options, ARS options, and defaults matched.
+- No current authenticated-live verification claim is made for Rules, Execution Log, or Settings.
 
-## 8. Remaining mismatches or uncertainties
+## 8. Remaining unverified scope
 
-- No workflow videos accompanied this ARS request; click timing, hover/focus behavior and video-only messages cannot be compared.
+- ARS Rules, ARS Execution Log, and B2B ARS/ROS Settings require fresh authenticated LIVE inspection before their local behavior can be accepted, replaced, or removed.
 - The guide does not expose the Execution Log layout, import file format, permission matrix, pagination thresholds or complete error wording.
 - Sales History uses the available stock-cover data as a conservative replenishment calculation. The source's historical sales dataset/ROS formula is not supplied.
 - `Min Cost` and `Min Lead Time` are preserved rule values, but exact vendor selection cannot be reproduced without SKU-vendor price/lead-time alternatives from the source. Execution uses the SKU-location Primary Vendor.

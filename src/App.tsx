@@ -54,6 +54,7 @@ import { RecordedSkuEnquiry } from "./eretail/masters/RecordedSkuWorkflows";
 import PromotionManagement from "./eretail/masters/PromotionManagement";
 import PricingEvents from "./eretail/masters/PricingEvents";
 import PriceZoneMaster from "./eretail/masters/PriceZone";
+import ExternalApps from "./eretail/masters/ExternalApps";
 import OrderRefund from "./eretail/masters/OrderRefund";
 import OmsRules from "./eretail/sales/OmsRules";
 import MasterOrderEnquiry from "./eretail/sales/MasterOrderEnquiry";
@@ -110,6 +111,13 @@ import InboundGatePass from "./eretail/modules/InboundGatePass";
 import InboundEnquiry from "./eretail/modules/InboundEnquiry";
 import InboundCreateEdit from "./eretail/modules/InboundCreateEdit";
 import InboundRealtime from "./eretail/modules/InboundRealtime";
+import InboundQC from "./eretail/modules/InboundQC";
+import InventoryMoveHistory from "./eretail/modules/InventoryMoveHistory";
+import InventoryMove from "./eretail/modules/InventoryMove";
+import InventoryMoveScan from "./eretail/modules/InventoryMoveScan";
+import CycleCount from "./eretail/modules/CycleCount";
+import BinAudit from "./eretail/modules/BinAudit";
+import BulkLottables from "./eretail/modules/BulkLottables";
 import SortToBox from "./eretail/modules/SortToBox";
 import AJIOWorkflow from "./eretail/modules/AJIOWorkflow";
 import AmazonMFNWorkflow from "./eretail/modules/AmazonMFNWorkflow";
@@ -184,6 +192,13 @@ export default function App() {
             <Route path="/app/r/inbound-enquiry" element={<P><InboundEnquiry /></P>} />
             <Route path="/app/r/inbound-create-edit" element={<P><InboundCreateEdit /></P>} />
             <Route path="/app/r/inbound-realtime" element={<P><InboundRealtime /></P>} />
+            <Route path="/app/r/inbound-qc" element={<P><InboundQC /></P>} />
+            <Route path="/app/r/inv-move-history" element={<P><InventoryMoveHistory /></P>} />
+            <Route path="/app/r/inv-move" element={<P><InventoryMove /></P>} />
+            <Route path="/app/r/inv-move-scan" element={<P><InventoryMoveScan /></P>} />
+            <Route path="/app/r/cycle-count" element={<P><CycleCount /></P>} />
+            <Route path="/app/r/bin-audit" element={<P><BinAudit /></P>} />
+            <Route path="/app/r/bulk-lottables" element={<P><BulkLottables /></P>} />
             <Route
               path="/app/r/:key"
               element={
@@ -369,6 +384,7 @@ export default function App() {
                 </P>
               }
             />
+            <Route path="/app/m/external-apps" element={<P><ExternalApps /></P>} />
             <Route
               path="/app/m/vendor-promotions"
               element={

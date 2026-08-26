@@ -1,6 +1,8 @@
 // Initial data used to seed MongoDB (on first connect) and the in-memory
 // fallback store. Mirrors the original dataset exactly.
 export const SEED = {
+  external_apps: [],
+  external_app_definitions: [],
   fulfillment_audit: [],
   delivery_shipping_audit: [],
   inventory_moves: [],

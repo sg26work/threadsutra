@@ -1,83 +1,18 @@
-import { useEffect, useState } from 'react';
-import { RefreshCw, Download, SlidersHorizontal, Plus, Minus } from 'lucide-react';
-import { apiGet, apiSend } from '../lib/api';
-import { useDownload } from '../context/DownloadContext';
-import PageHeader from '../components/PageHeader';
-import DataTable, { Col } from '../components/DataTable';
-import Modal from '../components/Modal';
-
-const WAREHOUSES = ['All', 'Delhi NCR', 'Mumbai WH', 'Bengaluru WH', 'Kolkata WH'];
-
-export default function Inventory() {
-  const { requestDownload } = useDownload();
-  const [rows, setRows] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [wh, setWh] = useState('All');
-  const [adj, setAdj] = useState<any | null>(null);
-  const [amt, setAmt] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  const load = () => { setLoading(true); apiGet('/api/inventory').then(setRows).finally(() => setLoading(false)); };
-  useEffect(load, []);
-
-  const filtered = wh === 'All' ? rows : rows.filter((r) => r.warehouse === wh);
-
-  const doAdjust = async (sign: number) => {
-    if (!amt) return;
-    setSaving(true);
-    await apiSend('/api/inventory', 'PUT', { id: adj.id, adjustment: sign * Number(amt) });
-    setSaving(false); setAdj(null); setAmt(''); load();
-  };
-
-  const exportCsv = () => requestDownload({
-    title: 'Inventory View', module: 'inventory', baseName: 'inventory',
-    data: {
-      columns: ['SKU', 'Name', 'Warehouse', 'Bin', 'Available', 'Reserved', 'On Hand'],
-      rows: filtered.map((r) => [r.sku_code, r.name, r.warehouse, r.bin, r.available, r.reserved, r.on_hand]),
-    },
-  });
-
-  const cols: Col<any>[] = [
-    { key: 'sku_code', label: 'SKU', render: (r) => <span className="font-medium text-[#2f7fb6]">{r.sku_code}</span> },
-    { key: 'name', label: 'Product' },
-    { key: 'warehouse', label: 'Warehouse' },
-    { key: 'bin', label: 'Bin' },
-    { key: 'available', label: 'Available', render: (r) => <span className={Number(r.available) < 20 ? 'font-semibold text-rose-600' : 'font-medium text-slate-700'}>{r.available}</span> },
-    { key: 'reserved', label: 'Reserved' },
-    { key: 'on_hand', label: 'On Hand', render: (r) => <span className="font-medium">{r.on_hand}</span> },
-    { key: 'act', label: 'Adjust', render: (r) => <button onClick={() => { setAdj(r); setAmt(''); }} className="flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50"><SlidersHorizontal size={12} /> Adjust</button> },
-  ];
-
-  return (
-    <div>
-      <PageHeader title="Inventory Management" breadcrumb="WMS / Inventory View"
-        actions={<>
-          <button onClick={load} className="flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"><RefreshCw size={14} /> Refresh</button>
-          <button onClick={exportCsv} className="flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"><Download size={14} /> Export</button>
-        </>} />
-
-      <div className="mb-4 flex flex-wrap gap-2">
-        {WAREHOUSES.map((w) => (
-          <button key={w} onClick={() => setWh(w)} className={`rounded-full px-3 py-1 text-xs font-medium transition ${wh === w ? 'bg-[#2f9e9e] text-white' : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>{w}</button>
-        ))}
-      </div>
-
-      <DataTable cols={cols} rows={filtered} loading={loading} empty="No inventory records" />
-
-      <Modal title={`Adjust Stock — ${adj?.sku_code || ''}`} open={!!adj} onClose={() => setAdj(null)}>
-        {adj && (<>
-          <div className="mb-4 rounded-md bg-slate-50 p-3 text-sm">
-            <p className="font-medium text-slate-700">{adj.name}</p>
-            <p className="text-xs text-slate-400">{adj.warehouse} • Bin {adj.bin} • Current available: <b>{adj.available}</b></p>
-          </div>
-          <label className="mb-1 block text-xs font-medium text-slate-600">Adjustment Quantity</label>
-          <input type="number" min={1} value={amt} onChange={(e) => setAmt(e.target.value)} className="inp" placeholder="e.g. 25" />
-          <div className="mt-5 flex justify-end gap-2">
-            <button onClick={() => doAdjust(-1)} disabled={saving || !amt} className="flex items-center gap-1.5 rounded-md border border-rose-300 px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50"><Minus size={15} /> Reduce</button>
-            <button onClick={() => doAdjust(1)} disabled={saving || !amt} className="flex items-center gap-1.5 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"><Plus size={15} /> Add</button>
-          </div>
-        </>)}
-      </Modal>
-    </div>
-  );
-}
+import{useEffect,useState}from'react';import Shell from'../eretail/Shell';import{Btn,Toast}from'../eretail/parts';import Modal from'../components/Modal';import{apiGet,apiSend}from'../lib/api';import{useDownload}from'../context/DownloadContext';
+type Field={key:string;label:string;kind?:'select'|'picker'|'check';options?:string};type Tab={key:string;label:string;fields:Field[];heads:[string,string][];sidx:string};
+const common:Field[]=[{key:'skuOrBarcode',label:'SKUCode / BarCode',kind:'check'},{key:'skuCode',label:'SKU Code',kind:'picker'},{key:'skuDesc',label:'SKU Desc'},{key:'mfgSkuCode',label:'Mfg SKU Code'}];
+const tabs:Tab[]=[
+ {key:'sku',label:'By SKU',sidx:'sku',fields:[...common,{key:'hierarchyCode',label:'Hierarchy Code',kind:'picker'},{key:'brandCode',label:'Brand Code',kind:'picker'},{key:'vendorCode',label:'Vendor Code',kind:'picker'}],heads:[['skuCode','SKU Code'],['style','Style'],['mfgSkuCode','Mfg SKU Code'],['hierarchyCode','Hierarchy Code'],['size','Size'],['invBucket','Inv Bucket'],['totalQty','Total Qty'],['availableQty','Available Qty'],['commitedQty','Commited Qty'],['pickedQty','Picked Qty'],['transitQty','Transit Qty'],['openQty','Open Qty'],['brandCode','Brand Code'],['vendorCode','Vendor Code'],['siteLocation','Site Location'],['onHold','On Hold'],['wac','WAC'],['primaryUpc','Primary UPC/EAN'],['blockedQty','Blocked Qty']]},
+ {key:'sku-bin',label:'By SKU BIN',sidx:'sku',fields:[...common,{key:'binCode',label:'BIN Code'},{key:'bucket',label:'Inv Bucket',kind:'select',options:'buckets'},{key:'zone',label:'Zone',kind:'select',options:'zones'},{key:'brandCode',label:'Brand Code',kind:'picker'}],heads:[['skuCode','SKU Code'],['style','Style'],['mfgSkuCode','Mfg SKU Code'],['hierarchyCode','Hierarchy Code'],['size','Size'],['zone','Zone'],['bin','BIN'],['invBucket','Inv Bucket'],['totalQty','Total Qty'],['availableQty','Available Qty'],['commitedQty','Commited Qty'],['pickedQty','Picked Qty'],['transitQty','Transit Qty'],['onHold','On Hold'],['siteLocation','Site Location']]},
+ {key:'sku-lot',label:'By SKU LOT',sidx:'sku',fields:[...common,{key:'hierarchyCode',label:'Hierarchy Code',kind:'picker'},{key:'brandCode',label:'Brand Code',kind:'picker'},{key:'bucket',label:'Inv Bucket',kind:'select',options:'buckets'}],heads:[['skuCode','SKU Code'],['style','Style'],['mfgSkuCode','Mfg SKU Code'],['hierarchyCode','Hierarchy Code'],['totalQty','Total Qty'],['availableQty','Available Qty'],['commitedQty','Commited Qty'],['pickedQty','Picked Qty'],['transitQty','Transit Qty'],['mrp','MRP'],['expiryDate','Expiry Date'],['mfgDate','Mfg date'],['lottable04','Lottable04'],['batchNo','Batch No'],['lottable06','Lottable06'],['lottable07','Lottable07'],['invBucket','Inv Bucket'],['siteLocation','Site Location'],['onHold','On Hold']]},
+ {key:'sku-bin-lot',label:'By SKU BIN LOT',sidx:'sku',fields:[...common,{key:'hierarchyCode',label:'Hierarchy Code',kind:'picker'},{key:'binCode',label:'BIN Code'},{key:'lotCode',label:'Lot Code'},{key:'brandCode',label:'Brand Code',kind:'picker'}],heads:[['skuCode','SKU Code'],['style','Style'],['mfgSkuCode','Mfg SKU Code'],['hierarchyCode','Hierarchy Code'],['size','Size'],['bin','BIN'],['lotNo','Lot No'],['totalQty','Total Qty'],['availableQty','Available Qty'],['commitedQty','Commited Qty'],['pickedQty','Picked Qty'],['transitQty','Transit Qty'],['mrp','MRP'],['expiryDate','Expiry Date'],['mfgDate','Mfg date'],['lottable04','Lottable04'],['batchNo','Batch No'],['lottable06','Lottable06'],['lottable07','Lottable07'],['zone','Zone'],['siteLocation','Site Location'],['onHold','On Hold'],['holdBy','Hold By'],['holdDate','Hold Date'],['unholdBy','Unhold By'],['unholdDate','Unhold Date']]},
+ {key:'imei',label:'By SKU IMEI',sidx:'sku',fields:[{key:'skuCode',label:'SKU Code'},{key:'skuDesc',label:'SKU Desc'},{key:'imei',label:'IMEI'},{key:'siteCode',label:'Site Location',kind:'select',options:'locations'},{key:'status',label:'Status',kind:'select',options:'imeiStatuses'}],heads:[['skuCode','SKU Code'],['imei','IMEI'],['siteLocation','Site Location'],['status','Status'],['inTransactionDate','In Transaction Date'],['outTransactionDate','Out Transaction Date'],['inTransactionNo','In Transaction No'],['outTransactionNo','Out Transaction No']]},
+ {key:'unique',label:'By SKU UNIQUE NO',sidx:'sku',fields:[{key:'skuCode',label:'SKU Code'},{key:'skuDesc',label:'SKU Desc'},{key:'uniqueNo',label:'SKU Unique No'},{key:'vendorCode',label:'Vendor Code'},{key:'uploadDate',label:'Upload Date'},{key:'status',label:'Status',kind:'select',options:'usnStatuses'},{key:'subStatus',label:'Sub Status',kind:'select',options:'usnStatuses'},{key:'poNo',label:'PO No'},{key:'brandCode',label:'Brand Code',kind:'picker'}],heads:[['skuCode','SKU Code'],['uniqueNo','Unique No'],['extUniqueNo','Ext Unique No'],['siteLocation','Site Location'],['status','Status'],['subStatus','Sub Status'],['inDate','In Date'],['inReferenceNo','In ReferenceNo'],['outDate','Out Date'],['outReferenceNo','Out ReferenceNo'],['bin','Bin Code'],['id','Id'],['lotNo','Lot No'],['vendorCode','Primary Vendor'],['action','Action']]},
+ {key:'marketplace',label:'Market Place Inventory',sidx:'sku',fields:[{key:'channelCode',label:'Channel',kind:'select',options:'channels'},{key:'skuCode',label:'SKU Code'},{key:'skuDesc',label:'SKU Desc'},{key:'channelSkuCode',label:'Channel SKU Code'},{key:'mpInventory',label:'Market Place Inventory',kind:'select',options:'imeiStatuses'},{key:'bucket',label:'Inv Bucket',kind:'select',options:'buckets'}],heads:[['skuCode','SKU Code'],['channelSkuCode','Channel SKU Code'],['invBucket','Inv Bucket'],['totalQty','Total Qty'],['remarks','Remarks'],['lastUpdateDate','Last Update Date']]},
+ {key:'bom',label:'By SKU BOM',sidx:'sku',fields:[{key:'skuCode',label:'SKU Code'},{key:'inventoryType',label:'Inventory Type',kind:'select',options:'inventoryTypes'},{key:'siteCode',label:'Site Location',kind:'select',options:'locations'}],heads:[['skuCode','SKU Code'],['inventory','Inventory'],['inventoryType','Inventory Type']]}
+];
+const blank=(tab:Tab)=>Object.fromEntries(tab.fields.map(f=>[f.key,f.kind==='check'?true:f.kind==='select'&&f.options!=='buckets'?' -1'.trim() : f.options==='buckets'?'10':'']));
+export default function Inventory(){const{requestDownload}=useDownload(),[tab,setTab]=useState(tabs[0]),[meta,setMeta]=useState<any>({}),[filters,setFilters]=useState<any>(blank(tabs[0])),[rows,setRows]=useState<any[]>([]),[page,setPage]=useState(1),[size,setSize]=useState(20),[records,setRecords]=useState(0),[loading,setLoading]=useState(false),[picker,setPicker]=useState<Field|null>(null),[toast,setToast]=useState<any>(null);useEffect(()=>{apiGet('/api/inventory?meta=true').then(setMeta).catch((e:any)=>setToast({msg:e.message,type:'err'}))},[]);
+ async function search(next=page,nextSize=size){setLoading(true);try{const r:any=await apiSend('/api/inventory','POST',{action:'search',REQ_SEARCH_FLAG:true,tab:tab.key,rows:nextSize,page:next,sidx:tab.sidx,sord:'desc',...filters});setRows(r.rows);setPage(r.page);setRecords(r.records)}catch(e:any){setRows([]);setRecords(0);setToast({msg:e.message,type:'err'})}finally{setLoading(false)}}const changeTab=(x:Tab)=>{setTab(x);setFilters(blank(x));setRows([]);setPage(1);setRecords(0)};const reset=()=>{setFilters(blank(tab));setRows([]);setPage(1);setRecords(0)};const pages=Math.ceil(records/size);const exportRows=()=>requestDownload({title:`Inventory View - ${tab.label}`,module:'inventory',baseName:`inventory-${tab.key}`,data:{columns:tab.heads.map(x=>x[1]),rows:rows.map(r=>tab.heads.map(([k])=>r[k]??''))}});
+ return <Shell active="wms" breadcrumb="WMS > Inventory > Inventory View" openScreens={[{label:'Inventory View',to:'#'}]}><div className="mb-3 flex gap-2"><Btn onClick={()=>void search(1)}>Search</Btn><Btn variant="ghost" onClick={reset}>Reset</Btn><Btn variant="ghost" onClick={exportRows}>Export</Btn></div><div className="rounded border bg-white"><div className="flex flex-wrap border-b text-sm">{tabs.map(x=><button key={x.key} onClick={()=>changeTab(x)} className={`px-3 py-2 ${tab.key===x.key?'border-b-2 border-sky-600 text-sky-700':''}`}>{x.label}</button>)}</div><div className="grid items-end gap-3 border-b p-4 md:grid-cols-4">{tab.fields.map(f=><FieldControl key={f.key} field={f} value={filters[f.key]} meta={meta} set={v=>setFilters((x:any)=>({...x,[f.key]:v}))} pick={()=>setPicker(f)}/>)}</div><div className="overflow-auto"><table className="min-w-max text-xs"><thead className="bg-slate-100"><tr>{tab.heads.map(([,l])=><th className="p-2 text-left" key={l}>{l}</th>)}</tr></thead><tbody>{loading?<tr><td colSpan={tab.heads.length} className="p-10 text-center">Loading...</td></tr>:rows.length?rows.map((r,i)=><tr className="border-t" key={r.id||i}>{tab.heads.map(([k])=><td className="p-2" key={k}>{r[k]??''}</td>)}</tr>):<tr><td colSpan={tab.heads.length} className="p-10 text-center text-slate-400">No records to view</td></tr>}</tbody></table></div><div className="flex items-center justify-end gap-3 border-t p-3 text-xs"><button disabled={page<=1} onClick={()=>void search(page-1)}>Previous</button><span>Page {records?page:0} of {pages}</span><button disabled={page>=pages} onClick={()=>void search(page+1)}>Next</button><select aria-label="Page size" value={size} onChange={e=>{const n=+e.target.value;setSize(n);void search(1,n)}}>{[20,50,100,200].map(n=><option key={n}>{n}</option>)}</select><span>{records?`View ${(page-1)*size+1} - ${Math.min(page*size,records)} of ${records}`:'No records to view'}</span></div></div><Modal title={`${picker?.label||''} Picker`} open={!!picker} onClose={()=>setPicker(null)}>{(picker?.key==='vendorCode'?meta.vendors:meta.products||[]).map((x:any)=><button key={x.id} className="block w-full border-b p-3 text-left" onClick={()=>{setFilters((v:any)=>({...v,[picker!.key]:picker?.key==='hierarchyCode'?x.hierarchy:picker?.key==='brandCode'?x.brand:x.code}));setPicker(null)}}><b>{x.code}</b> — {x.name}</button>)}</Modal>{toast&&<Toast {...toast} onClose={()=>setToast(null)}/>}</Shell>}
+function FieldControl({field,value,meta,set,pick}:{field:Field;value:any;meta:any;set:(v:any)=>void;pick:()=>void}){if(field.kind==='check')return <label className="flex items-center gap-2 text-xs"><input aria-label="SKU or Barcode" type="checkbox" checked={!!value} onChange={e=>set(e.target.checked)}/><span>SKUCode / BarCode</span></label>;if(field.kind==='select')return <label className="text-xs">{field.label}<select aria-label={field.label} className="inp mt-1" value={value} onChange={e=>set(e.target.value)}>{(meta[field.options!]||[]).map((x:any)=><option key={x[0]} value={x[0]}>{x[1]}</option>)}</select></label>;return <label className="text-xs">{field.label}<div className="mt-1 flex"><input aria-label={field.label} className={`inp ${field.kind==='picker'?'rounded-r-none':''}`} value={value||''} onChange={e=>set(e.target.value)}/>{field.kind==='picker'&&<button aria-label={`Open ${field.label} picker`} className="rounded-r border px-3" onClick={pick}>...</button>}</div></label>}

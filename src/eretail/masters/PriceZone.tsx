@@ -1,5 +1,84 @@
-import { useEffect, useState } from 'react'; import Shell from '../Shell'; import EnquiryScreen, { type EField } from '../EnquiryScreen'; import Modal from '../../components/Modal'; import { Toast } from '../parts'; import { apiGet, apiSend } from '../../lib/api';
-const blank={code:'',name:'',price_zone_group:'',external_price_zone:'',external_price_zone_name:'',markup:'',hierarchy_code:'',active:true}; const groups=['Price Zone Group One','Price Zone Group Three','Price Zone Group Two'];
-const cols=[{key:'code',label:'Price Zone Code'},{key:'name',label:'Price Zone'},{key:'external_price_zone_name',label:'External Price Zone'},{key:'markup',label:'Margin Percent'},{key:'price_zone_group',label:'Price Zone Group'},{key:'status',label:'Status'}];
-const fields:EField[]=[{key:'priceZoneCode',label:'Price Zone Code'},{key:'internalPriceZoneName',label:'Price Zone'},{key:'externalPriceZoneName',label:'External Price Zone'},{key:'marginPercent',label:'Margin Percent'},{key:'priceZoneGroup',label:'Price Zone Group',type:'select',options:['--- Select ---',...groups]},{key:'isActive',label:'Status',type:'select',options:['--- Select ---','Active','Inactive']}];
-export default function PriceZone(){const[tab,setTab]=useState('zone'),[rows,setRows]=useState<any[]>([]),[pager,setPager]=useState({page:0,total:0,records:0,pageSize:20}),[meta,setMeta]=useState<any>({hierarchies:[]}),[loading,setLoading]=useState(false),[open,setOpen]=useState(false),[form,setForm]=useState<any>(blank),[editing,setEditing]=useState<any>(null),[toast,setToast]=useState<any>(null);useEffect(()=>{apiGet('/api/price-zones').then(setMeta)},[]);const search=async(f:any={},page=1,size=pager.pageSize)=>{setLoading(true);try{const x:any=await apiSend('/api/price-zones','POST',{rows:size,page,sidx:'priceZoneCode',sord:'desc',...f,searchTab:'PriceZone',REQ_SEARCH_FLAG:true});setRows(x.rows);setPager({page:x.page,total:x.total,records:x.records,pageSize:size})}catch(e:any){setToast({msg:e.message,type:'err'})}finally{setLoading(false)}};const edit=(r:any)=>{setEditing(r);setForm({...blank,...r,active:r.status!=='Inactive'});setOpen(true)};const save=async()=>{try{await apiSend('/api/price-zones',editing?'PUT':'POST',editing?{...form,id:editing.id}:form);setOpen(false);setEditing(null);setForm(blank);setToast({msg:'Price Zone saved successfully',type:'ok'});await search()}catch(e:any){setToast({msg:e.message,type:'err'})}};return <Shell active="master" breadcrumb="MASTER > Price Zone Master" openScreens={[{label:'Price Zone Master',to:'#'}]}><div className="flex border-b bg-white"><button onClick={()=>setTab('zone')} className={`px-5 py-3 ${tab==='zone'?'border-b-2 border-red-500':''}`}>Price Zone</button><button onClick={()=>setTab('policy')} className={`px-5 py-3 ${tab==='policy'?'border-b-2 border-red-500':''}`}>Price Zone Policy</button></div>{tab==='zone'?<EnquiryScreen breadcrumb={[{label:'Price Zone Master'}]} fields={fields} cols={cols} rows={rows} loading={loading} remote={pager} onSearch={search} onReset={()=>{setRows([]);setPager({page:0,total:0,records:0,pageSize:20})}} onRowEdit={edit} actions={[{label:'Add New',onClick:()=>{setForm(blank);setEditing(null);setOpen(true)}}]}/>:<section className="min-h-80 border bg-white p-5"><h2 className="font-semibold">Price Zone Policy</h2><p className="mt-3 text-sm text-slate-500">No policy controls are shown because only the tab was confirmed in the live module.</p></section>}<Modal title={editing?'Edit Price Zone':'Add Price Zone'} open={open} onClose={()=>setOpen(false)} wide><div className="grid gap-3 md:grid-cols-2">{[['code','Price Zone Code'],['name','Price Zone'],['external_price_zone_name','External Price Zone'],['markup','Margin Percent'],['hierarchy_code','Category']].map(([k,l])=><label key={k} className="text-xs">{l}<input aria-label={l} className="inp mt-1" value={form[k]} onChange={e=>setForm({...form,[k]:e.target.value})}/></label>)}<label className="text-xs">Price Zone Group<select aria-label="Price Zone Group" className="inp mt-1" value={form.price_zone_group} onChange={e=>setForm({...form,price_zone_group:e.target.value})}><option value="">--- Select ---</option>{groups.map(x=><option key={x}>{x}</option>)}</select></label><label className="flex items-center gap-2"><input aria-label="IsActive" type="checkbox" checked={form.active} onChange={e=>setForm({...form,active:e.target.checked})}/>IsActive</label></div><div className="mt-5 flex justify-end gap-2"><button onClick={save} className="rounded bg-[#f5a623] px-4 py-2 text-white">Save</button><button onClick={()=>setOpen(false)} className="rounded border px-4 py-2">Close</button></div></Modal>{toast&&<Toast {...toast} onClose={()=>setToast(null)}/>}</Shell>}
+import { useEffect, useState } from 'react';
+import Shell from '../Shell';
+import EnquiryScreen, { type EField } from '../EnquiryScreen';
+import Modal from '../../components/Modal';
+import { Toast } from '../parts';
+import { apiGet, apiSend } from '../../lib/api';
+
+const blank = { code: '', name: '', price_zone_group: '', external_price_zone: '', external_price_zone_name: '', markup: '', hierarchy_code: '', active: true };
+const groups = ['Price Zone Group One', 'Price Zone Group Three', 'Price Zone Group Two'];
+const columns = [
+  { key: 'code', label: 'Price Zone Code' }, { key: 'name', label: 'Price Zone' },
+  { key: 'external_price_zone_name', label: 'External Price Zone' }, { key: 'markup', label: 'Margin Percent' },
+  { key: 'price_zone_group', label: 'Price Zone Group' }, { key: 'hierarchy_code', label: 'Category' },
+  { key: 'status', label: 'Status' }, { key: 'created_by', label: 'Created By' },
+  { key: 'created_date', label: 'Created Date' }, { key: 'modified_by', label: 'Updated By' },
+  { key: 'modified_date', label: 'Updated Date' },
+];
+const fields: EField[] = [
+  { key: 'priceZoneCode', label: 'Price Zone Code' }, { key: 'internalPriceZoneName', label: 'Price Zone' },
+  { key: 'externalPriceZoneName', label: 'External Price Zone' }, { key: 'marginPercent', label: 'Margin Percent' },
+  { key: 'priceZoneGroup', label: 'Price Zone Group', type: 'select', options: ['--- Select ---', ...groups] },
+  { key: 'isActive', label: 'Status', type: 'select', options: ['--- Select ---', 'Active', 'Inactive'] },
+];
+
+export default function PriceZone() {
+  const [tab, setTab] = useState<'PriceZone' | 'PriceZonePolicy'>('PriceZone');
+  const [rows, setRows] = useState<any[]>([]);
+  const [pager, setPager] = useState({ page: 0, total: 0, records: 0, pageSize: 20 });
+  const [meta, setMeta] = useState<any>({ hierarchies: [] });
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [audit, setAudit] = useState<any>(null);
+  const [form, setForm] = useState<any>(blank);
+  const [editing, setEditing] = useState<any>(null);
+  const [toast, setToast] = useState<any>(null);
+
+  useEffect(() => { apiGet('/api/price-zones').then(setMeta); }, []);
+
+  const search = async (filters: any = {}, page = 1, size = pager.pageSize, activeTab = tab) => {
+    setLoading(true);
+    try {
+      const result: any = await apiSend('/api/price-zones', 'POST', { rows: size, page, sidx: 'priceZoneCode', sord: 'desc', ...filters, searchTab: activeTab, REQ_SEARCH_FLAG: true });
+      setRows(result.rows);
+      setPager({ page: result.page, total: result.total, records: result.records, pageSize: size });
+    } catch (error: any) { setToast({ msg: error.message, type: 'err' }); }
+    finally { setLoading(false); }
+  };
+
+  const changeTab = (next: 'PriceZone' | 'PriceZonePolicy') => { setTab(next); void search({}, 1, pager.pageSize, next); };
+  const copyToEditor = (row: any) => { setEditing(row); setForm({ ...blank, ...row, active: row.status !== 'Inactive' }); setOpen(true); };
+  const save = async () => {
+    try {
+      await apiSend('/api/price-zones', editing ? 'PUT' : 'POST', editing ? { ...form, id: editing.id } : form);
+      setOpen(false); setEditing(null); setForm(blank); setToast({ msg: 'Price Zone saved successfully', type: 'ok' }); await search();
+    } catch (error: any) { setToast({ msg: error.message, type: 'err' }); }
+  };
+  const remove = async (row: any) => {
+    if (!window.confirm('Do you want to delete price zone')) return;
+    try {
+      const result: any = await apiSend(`/api/price-zones?id=${row.id}`, 'DELETE', { priceZoneCode: row.code, category: row.hierarchy_code, REQ_SEARCH_FLAG: true });
+      setToast({ msg: result.jsonMessage || 'Price Zone deleted successfully', type: 'ok' }); await search();
+    } catch (error: any) { setToast({ msg: error.message, type: 'err' }); }
+  };
+
+  return <Shell active="master" breadcrumb="MASTER > Price Zone Master" openScreens={[{ label: 'Price Zone Master', to: '#' }]}>
+    <div className="flex border-b bg-white">
+      <button onClick={() => changeTab('PriceZone')} className={`px-5 py-3 ${tab === 'PriceZone' ? 'border-b-2 border-red-500' : ''}`}>Price Zone</button>
+      <button onClick={() => changeTab('PriceZonePolicy')} className={`px-5 py-3 ${tab === 'PriceZonePolicy' ? 'border-b-2 border-red-500' : ''}`}>Price Zone Policy</button>
+    </div>
+    <EnquiryScreen key={tab} breadcrumb={[{ label: 'Price Zone Master' }]} fields={fields} cols={tab === 'PriceZonePolicy' ? columns : columns.filter((column) => column.key !== 'hierarchy_code')} rows={rows} loading={loading} remote={pager} onSearch={search} onReset={() => { setRows([]); setPager({ page: 0, total: 0, records: 0, pageSize: 20 }); }} onRowEdit={copyToEditor} onRowInfo={setAudit} onRowDelete={remove} actions={[{ label: 'Add New', onClick: () => { setForm(blank); setEditing(null); setOpen(true); } }]} />
+    <Modal title={editing ? 'Edit Price Zone' : 'Add Price Zone'} open={open} onClose={() => setOpen(false)} wide>
+      <div className="grid gap-3 md:grid-cols-2">
+        {[['code', 'Price Zone Code'], ['name', 'Price Zone'], ['external_price_zone_name', 'External Price Zone'], ['markup', 'Margin Percent']].map(([key, label]) => <label key={key} className="text-xs">{label}<input aria-label={label} className="inp mt-1" value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} /></label>)}
+        <label className="text-xs">Price Zone Group<select aria-label="Price Zone Group" className="inp mt-1" value={form.price_zone_group} onChange={(event) => setForm({ ...form, price_zone_group: event.target.value })}><option value="">--- Select ---</option>{groups.map((group) => <option key={group}>{group}</option>)}</select></label>
+        <label className="text-xs">Category<select aria-label="Category" className="inp mt-1" value={form.hierarchy_code} onChange={(event) => setForm({ ...form, hierarchy_code: event.target.value })}><option value="">--- Select ---</option>{(meta.hierarchies || []).map((item: any) => <option key={item.id} value={item.code}>{item.name || item.code}</option>)}</select></label>
+        <label className="text-xs">External Price Zone Code<input aria-label="External Price Zone Code" className="inp mt-1" value={form.external_price_zone} onChange={(event) => setForm({ ...form, external_price_zone: event.target.value })} /></label>
+        <label className="flex items-center gap-2"><input aria-label="IsActive" type="checkbox" checked={form.active} onChange={(event) => setForm({ ...form, active: event.target.checked })} />IsActive</label>
+      </div>
+      <div className="mt-5 flex justify-end gap-2"><button onClick={save} className="rounded bg-[#f5a623] px-4 py-2 text-white">Save</button><button onClick={() => setOpen(false)} className="rounded border px-4 py-2">Close</button></div>
+    </Modal>
+    <Modal title="Audit Details" open={Boolean(audit)} onClose={() => setAudit(null)}><dl className="grid grid-cols-2 gap-3 text-sm"><dt>Created By</dt><dd>{audit?.created_by}</dd><dt>Created Date</dt><dd>{audit?.created_date}</dd><dt>Updated By</dt><dd>{audit?.modified_by}</dd><dt>Updated Date</dt><dd>{audit?.modified_date}</dd></dl></Modal>
+    {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+  </Shell>;
+}

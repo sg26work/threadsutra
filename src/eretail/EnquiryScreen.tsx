@@ -1,7 +1,7 @@
 import { ReactNode, useState, useMemo } from 'react';
 import {
   Search, HelpCircle, Home, ChevronRight, X,
-  ChevronsLeft, ChevronLeft, ChevronsRight, Pencil, Info, ArrowUpDown,
+  ChevronsLeft, ChevronLeft, ChevronsRight, Pencil, Info, Trash2, ArrowUpDown,
 } from 'lucide-react';
 
 export type ECol = {
@@ -28,7 +28,7 @@ export function StatusPill({ active }: { active: boolean }) {
 }
 
 export default function EnquiryScreen({
-  breadcrumb, cols, rows, loading, actions = [], fields = [], onRowEdit, onRowInfo, selectedIds = [], onSelectionChange,
+  breadcrumb, cols, rows, loading, actions = [], fields = [], onRowEdit, onRowInfo, onRowDelete, selectedIds = [], onSelectionChange,
   emptyText = 'No records to view', onSearch, onReset, remote, pageSizes = [20, 50, 100, 200], sectionTitle, actionsBeforeResetCount = 0, hideActionBar = false, initialFilters = {},
 }: {
   breadcrumb: { label: string }[];
@@ -39,6 +39,7 @@ export default function EnquiryScreen({
   fields?: EField[];
   onRowEdit?: (r: any) => void;
   onRowInfo?: (r: any) => void;
+  onRowDelete?: (r: any) => void;
   selectedIds?: number[];
   onSelectionChange?: (ids: number[]) => void;
   emptyText?: string;
@@ -77,7 +78,7 @@ export default function EnquiryScreen({
   const totalRecords = remote ? remote.records : filtered.length;
   const pageRows = remote ? filtered : filtered.slice((page - 1) * pageSize, page * pageSize);
   const goPage = (value: number, size = currentPageSize) => { setPage(value); if (remote) onSearch?.(filters, value, size); };
-  const hasActions = !!(onRowEdit || onRowInfo);
+  const hasActions = !!(onRowEdit || onRowInfo || onRowDelete);
   const selectable = !!onSelectionChange;
 
   const btn = 'flex items-center gap-1.5 rounded px-3.5 py-2 text-sm font-medium transition';
@@ -116,7 +117,7 @@ export default function EnquiryScreen({
 
       {fields.length > 0 && <section className="mb-3 grid gap-3 border bg-white p-4 md:grid-cols-3">
         {fields.map((field) => <label key={field.key} className="text-xs text-slate-600">{field.label}
-          {field.type === 'select' ? <select aria-label={field.label} className="inp mt-1" disabled={field.disabled} value={field.value ?? filters[field.key] ?? ''} onChange={(event) => field.onChange ? field.onChange(event.target.value) : setF(field.key, event.target.value)}>{(field.options || []).map((option) => <option key={option} value={option === '--- Select ---' ? '' : option}>{option}</option>)}</select> : field.type === 'checkbox' ? <input aria-label={field.label} className="ml-3 mt-2" type="checkbox" checked={field.checked} onChange={(event) => field.onChange?.(event.target.checked)} /> : <div className="mt-1 flex"><input aria-label={field.label} className="inp rounded-r-none" disabled={field.disabled} value={field.value ?? filters[field.key] ?? ''} onChange={(event) => field.onChange ? field.onChange(event.target.value) : setF(field.key, event.target.value)} />{field.filterAction && <button aria-label={`Open ${field.label} picker`} type="button" className="rounded-r border px-3 text-sky-700" onClick={field.filterAction}>...</button>}</div>}
+          {field.type === 'select' ? <select aria-label={field.label} className="inp mt-1" disabled={field.disabled} value={field.value ?? filters[field.key] ?? ''} onChange={(event) => field.onChange ? field.onChange(event.target.value) : setF(field.key, event.target.value)}>{(field.options || []).map((option, index) => <option key={`${option}-${index}`} value={option === '--- Select ---' ? '' : option}>{option}</option>)}</select> : field.type === 'checkbox' ? <input aria-label={field.label} className="ml-3 mt-2" type="checkbox" checked={field.checked} onChange={(event) => field.onChange?.(event.target.checked)} /> : <div className="mt-1 flex"><input aria-label={field.label} className="inp rounded-r-none" disabled={field.disabled} value={field.value ?? filters[field.key] ?? ''} onChange={(event) => field.onChange ? field.onChange(event.target.value) : setF(field.key, event.target.value)} />{field.filterAction && <button aria-label={`Open ${field.label} picker`} type="button" className="rounded-r border px-3 text-sky-700" onClick={field.filterAction}>...</button>}</div>}
         </label>)}
       </section>}
 
@@ -173,6 +174,7 @@ export default function EnquiryScreen({
                     <div className="flex items-center justify-center gap-1">
                       {onRowEdit && <button onClick={() => onRowEdit(r)} className="flex h-7 w-7 items-center justify-center rounded bg-[#f5a623] text-white hover:brightness-105" title="Edit"><Pencil size={13} /></button>}
                       {onRowInfo && <button onClick={() => onRowInfo(r)} className="flex h-7 w-7 items-center justify-center rounded bg-[#8B4513] text-white hover:brightness-105" title="Info"><Info size={13} /></button>}
+                      {onRowDelete && <button onClick={() => onRowDelete(r)} className="flex h-7 w-7 items-center justify-center rounded bg-rose-600 text-white hover:brightness-105" title="Delete"><Trash2 size={13} /></button>}
                     </div>
                   </td>
                 )}

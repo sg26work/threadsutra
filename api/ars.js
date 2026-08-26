@@ -82,18 +82,32 @@ async function runRule(rule) {
 export default async function handler(req, res) {
   if (cors(req, res)) return;
   try {
-    const entity = text(req.query.entity || req.body?.entity);
+    const endpoint = text(req.path).split('/').pop();
+    const liveLinkEndpoint = ['fetchArsAttributes', 'addAndUpdateArsAttributes', 'bulkUpdateArsAttributes', 'downloadArsAttribute'].includes(endpoint);
+    const entity = text(req.query.entity || req.body?.entity || (liveLinkEndpoint ? 'links' : ''));
     const collection = collections[entity];
     if (!collection) return res.status(400).json({ error: 'Unknown ARS entity.' });
     if (req.method === 'GET') return res.status(200).json(await find(collection, {}, { sort: { id: entity === 'settings' ? 1 : -1 } }));
 
-    if (req.method === 'POST' && entity === 'links' && req.body?.REQ_SEARCH_FLAG) {
+    if (req.method === 'POST' && endpoint === 'downloadArsAttribute') {
+      const reportId = `ARS-${Date.now()}`;
+      await insert('downloads', { filename: `ars-sku-location-${today()}.xlsx`, format: 'XLSX', module: 'ARS SKU-Location Link', row_count: (await find(collection)).length, size: 0, exported_by: 'super admin', status: 'Processing', report_id: reportId, created_at: new Date().toISOString() });
+      return res.status(200).json({ jsonMessage: null, skuLocLinkDTO: { reportId }, reportDTO: { jsonMessage: 'Report request submitted.' } });
+    }
+
+    if (req.method === 'POST' && entity === 'links' && endpoint !== 'bulkUpdateArsAttributes' && (req.body?.REQ_SEARCH_FLAG || endpoint === 'fetchArsAttributes')) {
       const body = req.body; const has = (value, query) => !text(query) || text(value).toLowerCase().includes(text(query).toLowerCase());
-      const filtered = (await find(collection)).filter((row) => has(row.location, body.location)
-        && has(row.location_type, body.locationTypeId) && has(row.sku_code, body.skuCode)
+      const selectedLocations = text(body.location).split('\u0017').filter(Boolean);
+      const locationMaster = await find('generic_records', { module: 'location' });
+      const locationMatches = selectedLocations.flatMap((value) => {
+        const match = locationMaster.find((row) => [row.id, row.code, row.location_code, row.name, row.location_name].some((candidate) => text(candidate) === text(value)));
+        return match ? [value, match.code, match.location_code, match.name, match.location_name].map(text).filter(Boolean) : [value];
+      });
+      const filtered = (await find(collection)).filter((row) => (!locationMatches.length || locationMatches.some((value) => has(row.location, value) || has(row.location_id, value)))
+        && has(row.location_type, body.locationTypeId) && has(row.sku_code, body.skuCode || body.sku)
         && has(row.sku_name, body.skuName) && has(row.category, body.category) && has(row.brand, body.brand)
         && has(row.primary_vendor, body.primaryVendor) && has(row.fulfilment_method, body.fullFillmentMethod)
-        && has(row.fulfilment_wh, body.fullFillmentWH) && has(row.wh_lead_time, body.whLeadTime)
+        && has(row.fulfilment_wh, body.fullFillmentWH || body.fullFillmentWh) && has(row.wh_lead_time, body.whLeadTime || body.fullfillmentWhLeadTime)
         && has(row.stock_cover_days, body.stockCoverDays)
         && (!text(body.arsFlag) || text(row.ars_flag).toLowerCase() === (text(body.arsFlag) === '1' ? 'active' : text(body.arsFlag) === '0' ? 'inactive' : text(body.arsFlag).toLowerCase()))
         && has(row.sku_location_tag, body.skuLocationTag) && has(row.udf1, body.udf1) && has(row.udf2, body.udf2));
@@ -101,6 +115,83 @@ export default async function handler(req, res) {
       const page = Math.max(1, Number(body.page) || 1); const records = filtered.length; const total = Math.ceil(records / size);
       const gridModel = filtered.slice((page - 1) * size, page * size);
       return res.status(200).json({ gridModel, rows: gridModel, page, records, total });
+    }
+
+    if (req.method === 'POST' && endpoint === 'addAndUpdateArsAttributes') {
+      const body = req.body || {};
+      if (!text(body.skuCode)) return res.status(400).json({ error: 'SkuCode is mandatory' });
+      if (body.id && !text(body.transferUnitFactor)) return res.status(400).json({ error: 'Transfer Unit Factor is mandatory' });
+      if (body.id && !text(body.minimumTransferQty)) return res.status(400).json({ error: 'Minimum Transfer Qty is mandatory' });
+      if (text(body.transferUnitFactor) && Number(body.transferUnitFactor) < 1) return res.status(400).json({ error: 'Transfer Unit Factor cannot be Zero.' });
+      if (text(body.minimumTransferQty) && Number(body.minimumTransferQty) < 1) return res.status(400).json({ error: 'Minimum Transfer Qty cannot be Zero.' });
+      if (!text(body.location) || text(body.location) === '-1') return res.status(400).json({ error: 'Location is mandatory' });
+      if (!text(body.arsFlag) || text(body.arsFlag) === '-1') return res.status(400).json({ error: 'ArsFlag is mandatory' });
+      if (text(body.isCICO) === '1' && !text(body.caseSize)) return res.status(400).json({ error: 'Case Size is Mandatory.' });
+      if (text(body.caseSize) && (!Number.isInteger(Number(body.caseSize)) || Number(body.caseSize) <= 0)) return res.status(400).json({ error: 'Case Size must be positive integer.' });
+      const fields = {
+        sku_code: text(body.skuCode), location: text(body.location), fulfilment_method: text(body.fullFillMentMethod),
+        fulfilment_wh: text(body.fullFillMentWH), wh_lead_time: Number(body.whLeadTime || 0), primary_vendor: text(body.primaryVendor),
+        stock_cover_days: Number(body.stockCoverDays || 0), minimum_transfer_qty: Number(body.minimumTransferQty || 1),
+        transfer_unit_factor: Number(body.transferUnitFactor || 1), ars_flag: text(body.arsFlag) === '1' ? 'Active' : text(body.arsFlag) === '0' ? 'Inactive' : text(body.arsFlag),
+        maximum_order_qty: Number(body.maximumOrderQty || 0), sku_location_tag: text(body.skuLocationTag), is_cico: text(body.isCICO) === '1',
+        case_size: text(body.caseSize), updated_date: today(), updated_by: 'super admin',
+      };
+      const sku = await findOne('skus', { sku_code: fields.sku_code });
+      if (!sku) return res.status(400).json({ error: 'SKU does not exist in SKU Master.' });
+      const locationMaster = await find('generic_records', { module: 'location' });
+      const location = locationMaster.find((row) => [row.id, row.code, row.location_code, row.name, row.location_name].some((candidate) => text(candidate) === text(body.location)));
+      const fulfilmentWarehouse = locationMaster.find((row) => [row.id, row.code, row.location_code, row.name, row.location_name].some((candidate) => text(candidate) === text(body.fullFillMentWH)));
+      Object.assign(fields, { sku_name: sku.name, category: sku.category, brand: sku.brand,
+        location_id: text(body.location), location: text(location?.location_name || location?.name || body.location),
+        location_type: text(location?.location_type || location?.loc_type), fulfilment_wh_id: text(body.fullFillMentWH),
+        fulfilment_wh: text(fulfilmentWarehouse?.location_name || fulfilmentWarehouse?.name || body.fullFillMentWH) });
+      if (body.id) {
+        const changed = await update(collection, Number(body.id), fields);
+        if (!changed.length) return res.status(404).json({ error: 'ARS record not found.' });
+        return res.status(200).json({ jsonMessage: null, skuLocLinkDTO: changed[0] });
+      }
+      const duplicate = (await find(collection)).find((row) => row.sku_code === fields.sku_code && row.location === fields.location);
+      if (duplicate) return res.status(409).json({ error: 'This SKU and Location are already linked.' });
+      const row = await insert(collection, { ...fields, created_date: today() });
+      return res.status(200).json({ jsonMessage: null, skuLocLinkDTO: row });
+    }
+
+    if (req.method === 'POST' && endpoint === 'bulkUpdateArsAttributes') {
+      const body = req.body || {};
+      if (!text(body.locationType_bulk) || text(body.locationType_bulk) === '-1') return res.status(400).json({ error: 'Location Type is mandatory' });
+      const checked = [body.arsCheckBox, body.stockCoverDaysCheckBox, body.primaryVendorCheckBox, body.fullfillmentMethodCheckBox,
+        body.fullfillmentWHCheckBox, body.fullfillmentWhLeadTimeCheckBox, body.minimumTransferQtyCheckBox,
+        body.transferUnitFactorCheckBox, body.maximumOrderQtyCheckBox, body.skuLocationTagCheckBox, body.caseSizeCheckBox, body.isCICOCheckBox]
+        .some((value) => value === true || text(value) === 'true');
+      if (!checked) return res.status(400).json({ error: 'Select at least one attribute to update' });
+      const match = (row, key, value) => {
+        if (!text(value) || text(value) === '-1') return true;
+        if (key === 'location_type') {
+          const types = { 2: ['wh', 'warehouse'], 3: ['store'], 6: ['franchise'] };
+          return (types[text(value)] || [text(value).toLowerCase()]).includes(text(row[key]).toLowerCase());
+        }
+        return text(row[key]).toLowerCase().includes(text(value).toLowerCase());
+      };
+      const candidates = (await find(collection)).filter((row) => match(row, 'location_type', body.locationType_bulk)
+        && match(row, 'location', body.location_bulk) && match(row, 'category', body.categoryCode)
+        && match(row, 'sku_group', body.skuGroup_bulk) && match(row, 'primary_vendor', body.vendorCode)
+        && match(row, 'brand', body.brand_bulk) && match(row, 'sku_code', body.sku_bulk));
+      const fields = {};
+      const use = (check, key, value) => { if (check === true || text(check) === 'true') fields[key] = value; };
+      use(body.arsCheckBox, 'ars_flag', text(body.arsFlag_bulk) === '1' ? 'Active' : text(body.arsFlag_bulk) === '0' ? 'Inactive' : text(body.arsFlag_bulk));
+      use(body.stockCoverDaysCheckBox, 'stock_cover_days', Number(body.stockCoverDays_bulk || 0));
+      use(body.primaryVendorCheckBox, 'primary_vendor', text(body.primaryVendor_bulk));
+      use(body.fullfillmentMethodCheckBox, 'fulfilment_method', text(body.fullfillmentMethod_bulk));
+      use(body.fullfillmentWHCheckBox, 'fulfilment_wh', text(body.fullfillmentWH_bulk));
+      use(body.fullfillmentWhLeadTimeCheckBox, 'wh_lead_time', Number(body.whLeadTime_bulk || 0));
+      use(body.minimumTransferQtyCheckBox, 'minimum_transfer_qty', Number(body.minimumTransferQty_bulk || 1));
+      use(body.transferUnitFactorCheckBox, 'transfer_unit_factor', Number(body.transferUnitFactor_bulk || 1));
+      use(body.maximumOrderQtyCheckBox, 'maximum_order_qty', Number(body.maximumOrderQty_bulk || 0));
+      use(body.skuLocationTagCheckBox, 'sku_location_tag', text(body.skuLocationTag_bulk));
+      use(body.caseSizeCheckBox, 'case_size', text(body.caseSize_bulk));
+      use(body.isCICOCheckBox, 'is_cico', body.isCICO_ValueCB === true || text(body.isCICO_ValueCB) === 'true');
+      const changed = candidates.length ? await update(collection, candidates.map((row) => row.id), { ...fields, updated_date: today(), updated_by: 'super admin' }) : [];
+      return res.status(200).json({ skuLocLinkDTO: { updatedRowCount: changed.length }, jsonMessage: null });
     }
 
     if (req.method === 'POST' && entity === 'rules' && req.body?.REQ_SEARCH_FLAG) {

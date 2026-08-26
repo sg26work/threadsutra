@@ -19,8 +19,9 @@ const g = (slug: string) => `/app/m/${slug}`;
 
 // ============================================================================
 //  Menu labels are captured from the authorized demo. Every menu item is
-//  clickable: built screens route to their real module; the rest open a fully
-//  functional generic master screen (list/add/edit/delete/export, DB-backed).
+//  clickable: evidence-backed screens route to their dedicated module. Routes
+//  that still use the generic fallback remain replication gaps until LIVE is
+//  inspected and a module-specific implementation is available.
 // ============================================================================
 export const RAIL: RailEntry[] = [
   { key: 'dashboard', icon: Gauge, title: 'Dashboard', single: '/app/dashboard' },
@@ -54,7 +55,7 @@ export const RAIL: RailEntry[] = [
         { title: 'Organization Management', items: [
           { label: 'Organization Hierarchy', to: g('org-hierarchy') },
           { label: 'Location Enquiry', to: g('location') },
-          { label: 'Location Create/Edit', to: g('location') },
+          { label: 'Location Create/Edit', to: '/app/m/location-create' },
           { label: 'Manage Store Group', to: g('store-group') },
         ]},
       ]},
@@ -73,6 +74,7 @@ export const RAIL: RailEntry[] = [
           { label: 'Tally Configuration', to: '/app/tally-configuration' },
           { label: 'Pricing Event', to: '/app/pricing-events' },
           { label: 'Price Zone Master', to: g('price-zone') },
+          { label: 'External Apps', to: g('external-apps') },
           { label: 'Order Refund', to: g('order-refund') },
           { label: 'Sales Representative', to: g('sales-rep') },
         ]},
@@ -177,22 +179,22 @@ export const RAIL: RailEntry[] = [
           { label: 'Consolidate EWB', to: '/app/fulfillment/consolidate-ewb' },
         ]},
         { title: 'Inbound', items: [
-          { label: 'Manage Inbound Gate Pass', to: g('inbound-gate-pass') },
-          { label: 'Inbound Enquiry', to: g('inbound-enquiry') },
+          { label: 'Manage Inbound Gate Pass', to: '/app/r/inbound-gate-pass' },
+          { label: 'Inbound Enquiry', to: '/app/r/inbound-enquiry' },
           { label: 'Inbound Create/Edit', to: '/app/r/inbound-create-edit' },
-          { label: 'Inbound RealTime', to: g('inbound-realtime') },
-          { label: 'Inbound QC', to: g('inbound-qc') },
+          { label: 'Inbound RealTime', to: '/app/r/inbound-realtime' },
+          { label: 'Inbound QC', to: '/app/r/inbound-qc' },
         ]},
       ]},
       { groups: [
         { title: 'Inventory', items: [
           { label: 'Inventory View', to: '/app/inventory' },
-          { label: 'Inventory Move History', to: g('inv-move-history') },
-          { label: 'Inventory Move', to: g('inv-move') },
-          { label: 'Inventory Move By Scan', to: g('inv-move-scan') },
-          { label: 'Cycle Count', to: g('cycle-count') },
-          { label: 'BIN Audit', to: g('bin-audit') },
-          { label: 'Bulk update Lottables', to: g('bulk-lottables') },
+          { label: 'Inventory Move History', to: '/app/r/inv-move-history' },
+          { label: 'Inventory Move', to: '/app/r/inv-move' },
+          { label: 'Inventory Move By Scan', to: '/app/r/inv-move-scan' },
+          { label: 'Cycle Count', to: '/app/r/cycle-count' },
+          { label: 'BIN Audit', to: '/app/r/bin-audit' },
+          { label: 'Bulk update Lottables', to: '/app/r/bulk-lottables' },
         ]},
         { title: 'Miscellaneous', items: [
           { label: 'PutAway Enquiry', to: g('putaway-enquiry') },

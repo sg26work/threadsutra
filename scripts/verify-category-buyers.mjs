@@ -25,20 +25,13 @@ try {
   const headers = await page.getByRole("columnheader").allTextContents();
   for (const expected of [
     "Buyer Code",
-    "Buyer Name",
+    "Buyer Name*",
     "Buyer Description",
     "Phone",
-    "Alternate Phone",
     "Email",
     "Status",
-    "UDF1",
-    "UDF5",
     "Location",
     "Created by",
-    "createdDate",
-    "updatedBy",
-    "updatedDate",
-    "Category",
     "Actions",
   ])
     if (!headers.includes(expected))
@@ -52,7 +45,7 @@ try {
   await page.locator("#gs_displayIsActive").selectOption("1");
   const requestPromise = page.waitForRequest(
     (request) =>
-      request.url().endsWith("/api/category-buyers") &&
+      request.url().endsWith("/api/categoryBuyerSearch") &&
       request.method() === "POST",
   );
   await page.getByRole("button", { name: "Search", exact: true }).click();
@@ -63,33 +56,40 @@ try {
     payload.sidx !== "" ||
     payload.sord !== "asc" ||
     payload.buyerName !== "Test" ||
-    payload.displayIsActive !== "1" ||
+    payload.isActive !== "1" ||
+    payload.udf1 !== "" ||
+    payload.udf5 !== "" ||
+    payload.linkToCat !== "" ||
     payload.REQ_SEARCH_FLAG !== true
   )
     throw new Error("Search payload mismatch.");
   await page.getByRole("button", { name: "Advanced Search" }).click();
-  await page.locator("#gs_udf1").fill("reset");
+  await page.locator("#altPhone1").fill("reset");
   await page.getByRole("button", { name: "Reset" }).click();
   if (
     (await page.locator("#gs_buyerName").inputValue()) ||
-    (await page.locator("#gs_udf1").count())
+    (await page.locator("#altPhone1").count())
   )
     throw new Error("Reset mismatch.");
   await page.getByRole("button", { name: "Add New" }).click();
+  if (await page.locator("#isActive").isChecked()) throw new Error("New buyer must default inactive.");
   await page.locator("#saveButton").click();
-  await page.getByText("Buyer Name is required.", { exact: true }).waitFor();
+  await page.getByText("Buyer Name is Mandatory", { exact: true }).waitFor();
   const suffix = Date.now().toString().slice(-7);
   const name = `Buyer ${suffix}`;
   await page.locator("#buyerName").fill(name);
+  await page.locator("#saveButton").click();
+  await page.getByText("Please fill all the mandatory fields", { exact: true }).waitFor();
   await page.locator("#email").fill(`buyer${suffix}@example.com`);
   await page.locator("#phone").fill("9988776655");
   const categories = page.locator("#categorySelect option");
   if (await categories.count())
     await page.locator("#categorySelect").selectOption({ index: 0 });
+  await page.getByRole("button", { name: "User Defined Fields", exact: true }).click();
   await page.locator("#UDF1").fill("buyer-udf");
   const savePromise = page.waitForRequest(
     (request) =>
-      request.url().endsWith("/api/category-buyers") &&
+      request.url().endsWith("/api/catBuyerSaveBS") &&
       request.method() === "POST" &&
       !request.postDataJSON()?.REQ_SEARCH_FLAG,
   );
@@ -114,8 +114,8 @@ try {
   await page.locator("#buyerDesc").fill("Updated buyer");
   const updatePromise = page.waitForRequest(
     (request) =>
-      request.url().endsWith("/api/category-buyers") &&
-      request.method() === "PUT",
+      request.url().endsWith("/api/catBuyerSaveBS") &&
+      request.method() === "POST",
   );
   await page.locator("#saveButton").click();
   const updated = await (await (await updatePromise).response()).json();

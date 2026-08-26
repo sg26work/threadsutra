@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import Shell from "../Shell";
 import Modal from "../../components/Modal";
-import { apiGet, apiSend } from "../../lib/api";
+import { apiSend } from "../../lib/api";
 
 const SIZES = [20, 50, 100, 200];
 type Charge = {
@@ -32,7 +32,7 @@ const blankCharge = (): Charge => ({
 });
 
 export default function PurchaseChargeMasters() {
-  const [filters, setFilters] = useState({ chargeId: "", clientId: "", name: "" });
+  const [nameFilter, setNameFilter] = useState("");
   const [rows, setRows] = useState<Master[]>([]);
   const [page, setPage] = useState(1);
   const [size, setSize] = useState(20);
@@ -41,22 +41,23 @@ export default function PurchaseChargeMasters() {
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [open, setOpen] = useState(false);
+  const [nameReadOnly, setNameReadOnly] = useState(false);
   const [form, setForm] = useState<Master>(blank());
-  const [line, setLine] = useState<Charge>(blankCharge());
   const [selected, setSelected] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
   const search = async (nextPage = 1, nextSize = size) => {
     setLoading(true);
     setError("");
     try {
-      const data = await apiSend<any>("/api/purchase-charge-masters", "POST", {
+      const data = await apiSend<any>("/api/chargeMasterSearch", "POST", {
         _search: true,
         rows: nextSize,
         page: nextPage,
         sidx: "updatedDate",
         sord: "desc",
-        ...filters,
+        name: nameFilter,
         REQ_SEARCH_FLAG: true,
       });
       setRows(data.gridModel);
@@ -72,17 +73,24 @@ export default function PurchaseChargeMasters() {
       setLoading(false);
     }
   };
+  useEffect(() => {
+    void search(1, 20);
+    // LIVE loads the first enquiry page when the module opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const edit = async (chargeId?: string) => {
     setError("");
+    setNotice("");
     setSelected([]);
-    setLine(blankCharge());
+    setNameReadOnly(Boolean(chargeId));
     if (chargeId) {
       try {
-        setForm(
-          await apiGet<Master>(
-            `/api/purchase-charge-masters?chargeId=${encodeURIComponent(chargeId)}`,
-          ),
+        const detail = await apiSend<any>(
+          `/api/jsonPOChargeDetailGrid?chargeId=${encodeURIComponent(chargeId)}&clientId=0`,
+          "POST",
+          { _search: false, rows: 20, page: 1, sidx: "", sord: "asc" },
         );
+        setForm(detail.chargeMasterDTO);
       } catch (e: any) {
         return setError(e.message);
       }
@@ -92,11 +100,40 @@ export default function PurchaseChargeMasters() {
   const addCharge = () => {
     if (form.charges.length >= 5)
       return setError("Maximum limit of parameters reached.");
-    setForm({ ...form, charges: [...form.charges, line] });
-    setLine(blankCharge());
+    setForm({ ...form, charges: [...form.charges, blankCharge()] });
+  };
+  const removeCharges = async () => {
+    if (!selected.length)
+      return setError("Select the charge(s) that you would like to remove");
+    const next = form.charges.filter((_, index) => !selected.includes(index));
+    setError("");
+    setNotice("");
+    if (!form.chargeId) {
+      setForm({ ...form, charges: next });
+      setSelected([]);
+      return;
+    }
+    setSaving(true);
+    try {
+      const response = await apiSend<any>(
+        "/api/delUpdatePOCharges",
+        "POST",
+        { chargeId: form.chargeId, clientId: form.clientId, name: form.name, gridData: next },
+      );
+      const saved: Master = response.chargeMasterDTO;
+      setForm(saved);
+      setSelected([]);
+      setNotice(response.actionMessage || "");
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
   };
   const save = async () => {
     if (!form.name.trim()) return setError("Enter Name for Charge Master");
+    if (!selected.length)
+      return setError("Select the charge(s) that you would like to save/update");
     if (!form.charges.length)
       return setError(
         "Please add charge data alongside creating Charge Master",
@@ -112,14 +149,15 @@ export default function PurchaseChargeMasters() {
     setSaving(true);
     setError("");
     try {
-      const data: any = await apiSend(
-        "/api/purchase-charge-masters",
+      const response: any = await apiSend(
+        "/api/saveUpdatePOCharges",
         "POST",
-        form,
+        { chargeId: form.chargeId, clientId: form.clientId, name: form.name, gridData: form.charges },
       );
+      const data = response.chargeMasterDTO;
       setForm(data);
-      setOpen(false);
-      await search(1);
+      setSelected([]);
+      setNotice(response.actionMessage || "");
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -127,13 +165,19 @@ export default function PurchaseChargeMasters() {
     }
   };
   const reset = () => {
-    setFilters({ chargeId: "", clientId: "", name: "" });
+    setNameFilter("");
     setRows([]);
     setRecords(0);
     setTotal(0);
     setPage(1);
     setSearched(false);
     setError("");
+    setNotice("");
+  };
+  const closeEditor = () => {
+    setOpen(false);
+    setNotice("");
+    void search(1);
   };
   return (
     <Shell
@@ -168,25 +212,30 @@ export default function PurchaseChargeMasters() {
           {error}
         </p>
       )}
-      <div className="grid gap-3 border bg-white p-3 md:grid-cols-3">
-        <label className="text-xs">
+      {notice && (
+        <p className="mb-2 rounded border bg-emerald-50 p-2 text-sm text-emerald-700">
+          {notice}
+        </p>
+      )}
+      <div className="grid gap-3 border bg-white p-3">
+        <label className="hidden text-xs">
           Charge ID
           <input
             id="gs_chargeId"
             name="chargeId"
             className="ci mt-1 block w-full"
-            value={filters.chargeId}
-            onChange={(event) => setFilters({ ...filters, chargeId: event.target.value })}
+            value=""
+            readOnly
           />
         </label>
-        <label className="text-xs">
+        <label className="hidden text-xs">
           Charge Line ID
           <input
             id="gs_clientId"
             name="clientId"
             className="ci mt-1 block w-full"
-            value={filters.clientId}
-            onChange={(event) => setFilters({ ...filters, clientId: event.target.value })}
+            value=""
+            readOnly
           />
         </label>
         <label className="text-xs">
@@ -195,8 +244,8 @@ export default function PurchaseChargeMasters() {
             id="gs_name"
             name="name"
             className="ci mt-1 block w-full"
-            value={filters.name}
-            onChange={(event) => setFilters({ ...filters, name: event.target.value })}
+            value={nameFilter}
+            onChange={(event) => setNameFilter(event.target.value)}
           />
         </label>
       </div>
@@ -204,15 +253,13 @@ export default function PurchaseChargeMasters() {
         <table className="w-full text-xs">
           <thead className="bg-[#2f3b57] text-white">
             <tr>
-              <th className="p-2 text-left">Charge ID</th>
-              <th className="p-2 text-left">Charge Line ID</th>
               <th className="p-2 text-left">Purchase Charge Master</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={3} className="p-8 text-center">
+                <td className="p-8 text-center">
                   Loading…
                 </td>
               </tr>
@@ -224,16 +271,14 @@ export default function PurchaseChargeMasters() {
                       className="text-sky-600"
                       onClick={() => void edit(row.chargeId)}
                     >
-                      {row.chargeId}
+                      {row.name}
                     </button>
                   </td>
-                  <td>{row.clientId}</td>
-                  <td>{row.name}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={3} className="p-8 text-center text-slate-400">
+                <td className="p-8 text-center text-slate-400">
                   No records to view
                 </td>
               </tr>
@@ -282,14 +327,14 @@ export default function PurchaseChargeMasters() {
       <Modal
         title="Purchase Charge Master"
         open={open}
-        onClose={() => setOpen(false)}
+        onClose={closeEditor}
       >
         <label className="text-xs">
           Name
           <input
             id="name"
             className="ci mt-1 block w-full"
-            disabled={Boolean(form.chargeId)}
+            disabled={nameReadOnly}
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
           />
@@ -304,58 +349,16 @@ export default function PurchaseChargeMasters() {
           <button
             id="removeChargeBtn"
             className="rounded border px-3 py-2 text-sm"
-            onClick={() => {
-              if (!selected.length)
-                return setError(
-                  "Select the charge(s) that you would like to remove",
-                );
-              setForm({
-                ...form,
-                charges: form.charges.filter((_, i) => !selected.includes(i)),
-              });
-              setSelected([]);
-            }}
+            disabled={saving}
+            onClick={() => void removeCharges()}
           >
             Remove Charge
           </button>
-        </div>
-        <div className="grid grid-cols-3 gap-2 border bg-slate-50 p-2">
-          <input
-            aria-label="Charge Name"
-            className="ci"
-            placeholder="Charge Name"
-            value={line.chargeName}
-            onChange={(e) => setLine({ ...line, chargeName: e.target.value })}
-          />
-          <select
-            aria-label="Charge Type"
-            className="ci"
-            value={line.chargeType}
-            onChange={(e) => setLine({ ...line, chargeType: e.target.value })}
-          >
-            <option value="1">Absolute</option>
-            <option value="2">Percentage</option>
-          </select>
-          <input
-            aria-label="Operand"
-            className="ci"
-            type="number"
-            placeholder="Operand"
-            value={line.operand}
-            onChange={(e) =>
-              setLine({
-                ...line,
-                operand: e.target.value === "" ? "" : Number(e.target.value),
-              })
-            }
-          />
         </div>
         <table className="mt-2 w-full text-xs">
           <thead className="bg-[#2f3b57] text-white">
             <tr>
               <th></th>
-              <th className="p-2 text-left">Charge ID</th>
-              <th className="p-2 text-left">Charge Line ID</th>
               <th className="p-2 text-left">Charge Name</th>
               <th className="p-2 text-left">Charge Type</th>
               <th className="p-2 text-left">Operand</th>
@@ -378,11 +381,52 @@ export default function PurchaseChargeMasters() {
                     }
                   />
                 </td>
-                <td>{item.chargeId || ""}</td>
-                <td>{item.chargeLineId || ""}</td>
-                <td>{item.chargeName}</td>
-                <td>{item.chargeType === "2" ? "Percentage" : "Absolute"}</td>
-                <td>{item.operand}</td>
+                <td className="p-1">
+                  <input
+                    aria-label={`Charge Name ${i + 1}`}
+                    className="ci w-full"
+                    value={item.chargeName}
+                    onChange={(event) => {
+                      const charges = [...form.charges];
+                      charges[i] = { ...item, chargeName: event.target.value };
+                      setForm({ ...form, charges });
+                    }}
+                  />
+                </td>
+                <td className="p-1">
+                  <select
+                    aria-label={`Charge Type ${i + 1}`}
+                    className="ci w-full"
+                    value={item.chargeType}
+                    onChange={(event) => {
+                      const charges = [...form.charges];
+                      charges[i] = { ...item, chargeType: event.target.value };
+                      setForm({ ...form, charges });
+                    }}
+                  >
+                    <option value="1">Absolute</option>
+                    <option value="2">Percentage</option>
+                  </select>
+                </td>
+                <td className="p-1">
+                  <input
+                    aria-label={`Operand ${i + 1}`}
+                    className="ci w-full"
+                    type="number"
+                    value={item.operand}
+                    onChange={(event) => {
+                      const charges = [...form.charges];
+                      charges[i] = {
+                        ...item,
+                        operand:
+                          event.target.value === ""
+                            ? ""
+                            : Number(event.target.value),
+                      };
+                      setForm({ ...form, charges });
+                    }}
+                  />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -399,7 +443,7 @@ export default function PurchaseChargeMasters() {
           <button
             id="closeBtn"
             className="rounded border px-4 py-2 text-sm"
-            onClick={() => setOpen(false)}
+            onClick={closeEditor}
           >
             Close
           </button>

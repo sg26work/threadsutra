@@ -1,0 +1,14 @@
+import assert from'node:assert/strict';
+import{chromium}from'playwright';
+const base=process.env.ERETAIL_BASE_URL||'http://127.0.0.1:3002',post=async body=>{const r=await fetch(`${base}/api/inventory-move-scan`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});return{r,j:await r.json()}};
+const meta=await(await fetch(`${base}/api/inventory-move-scan`)).json();assert.deepEqual(meta.reasons,[['-1','--- Select ---'],['1','Test1'],['2','Test2'],['3','Test3'],['4','Test4']]);assert.deepEqual(meta.pageSizes,[20,50,100,200]);
+let x=await post({action:'add-sku',skuCode:'',toBin:'X'});assert.equal(x.j.error,'SKU Code is mandatory.');x=await post({action:'lpn-move',fromLPN:'',toBin:'X'});assert.equal(x.j.error,'From LPN is mandatory.');x=await post({action:'lpn-to-lpn',fromLPN:'A',toLPN:''});assert.equal(x.j.error,'To LPN is mandatory.');
+const b=await chromium.launch({headless:true}),p=await b.newPage({viewport:{width:1440,height:1000}}),errors=[];p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>m.type()==='error'&&errors.push(m.text()));
+try{
+ await p.goto(base);const c=(await p.locator('.font-mono').textContent()).trim();await p.getByPlaceholder('Username').fill('scan');await p.getByPlaceholder('Password').fill('local');await p.getByPlaceholder('Enter captcha').fill(c);await p.getByRole('button',{name:'Login'}).click();await p.waitForURL('**/app/dashboard');await p.goto(`${base}/app/r/inv-move-scan`);const main=p.getByRole('main');
+ for(const tab of['Inventory Move By Scan','LPN Move','LPN To LPN'])await main.getByRole('button',{name:tab,exact:true}).waitFor();
+ for(const l of['Process By','Mode','From Bin','From LPN','To Bin','To LPN','SKU Code','SKU Desc','UOM','EA Qty','Reason'])await main.getByLabel(l,{exact:true}).waitFor();
+ for(const h of['Error','From Bin','From LPN','To Bin','To LPN','SKU Code','SKU Desc','UniqueNo','Quantity','Lot','Reference No'])await main.getByRole('columnheader',{name:h,exact:true}).waitFor();
+ await main.getByRole('button',{name:'Add',exact:true}).click();await p.getByText('SKU Code is mandatory.').waitFor();await main.getByRole('button',{name:'LPN Move',exact:true}).click();for(const h of['From Bin','From LPN','To Bin','To LPN','Quantity'])await main.getByRole('columnheader',{name:h,exact:true}).waitFor();assert.deepEqual(await main.getByLabel('Page size').locator('option').allTextContents(),['20','50','100','200']);await main.getByRole('button',{name:'LPN To LPN',exact:true}).click();await main.getByRole('button',{name:'Reset',exact:true}).waitFor();
+ assert.equal(await p.locator('vite-error-overlay').count(),0);assert.deepEqual(errors.filter(e=>!e.includes('400')),[]);console.log('PASS Inventory Move By Scan: exact three tabs, scan switches, controls, reason codes, grids, validation, LPN paging, reset, API contract, and clean browser state.');
+}finally{await b.close()}

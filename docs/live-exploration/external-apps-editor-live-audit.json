@@ -1,0 +1,229 @@
+{
+  "collectedAt": "2026-08-25T17:45:29.798Z",
+  "url": "https://demo.vineretail.com/eRetailWeb/displayExtAppsEnquiry",
+  "title": "",
+  "readyState": "complete",
+  "body": "Save Add New Master Miscellaneous External Apps Create/Edit App Details ExtApps Type --- Select --- Digital Payment Accounting Gift Card SMS/Email Payment Gateway Device Tracking Reward Point of Sale Wallet Robotics Integration Packaging Video Geocoding Custom App E-Filling CRM Status * --- Select --- InActive Active User Name --- Select --- Instructions",
+  "controls": [
+    {
+      "tag": "BUTTON",
+      "id": "",
+      "name": null,
+      "type": "button",
+      "text": "Save",
+      "value": "",
+      "placeholder": null,
+      "maxlength": null,
+      "disabled": false,
+      "onclick": "saveData(); return false;",
+      "onchange": null
+    },
+    {
+      "tag": "BUTTON",
+      "id": "addNewChannelButton",
+      "name": null,
+      "type": "button",
+      "text": "Add New",
+      "value": "",
+      "placeholder": null,
+      "maxlength": null,
+      "disabled": false,
+      "onclick": "addNewChannel();",
+      "onchange": null
+    },
+    {
+      "tag": "A",
+      "id": "",
+      "name": null,
+      "type": null,
+      "text": "Master",
+      "placeholder": null,
+      "maxlength": null,
+      "onclick": "return false;",
+      "onchange": null
+    },
+    {
+      "tag": "A",
+      "id": "",
+      "name": null,
+      "type": null,
+      "text": "Miscellaneous",
+      "placeholder": null,
+      "maxlength": null,
+      "onclick": "return false;",
+      "onchange": null
+    },
+    {
+      "tag": "A",
+      "id": "",
+      "name": null,
+      "type": null,
+      "text": "External Apps Create/Edit",
+      "placeholder": null,
+      "maxlength": null,
+      "onclick": "return false;",
+      "onchange": null
+    },
+    {
+      "tag": "SELECT",
+      "id": "rewardType",
+      "name": "rewardType",
+      "type": null,
+      "text": "--- Select --- Digital Payment Accounting Gift Card SMS/Email Payment Gateway Device Tracking Reward Point of Sale Wallet Robotics Integration Packaging Video Geocoding Custom App E-Filling CRM",
+      "value": "-1",
+      "placeholder": null,
+      "maxlength": null,
+      "required": false,
+      "disabled": false,
+      "onclick": null,
+      "onchange": "updateTemplateLink('rewardType');",
+      "options": [
+        {
+          "text": "--- Select ---",
+          "value": "-1",
+          "selected": true
+        },
+        {
+          "text": "Digital Payment",
+          "value": "EDC",
+          "selected": false
+        },
+        {
+          "text": "Accounting",
+          "value": "F",
+          "selected": false
+        },
+        {
+          "text": "Gift Card",
+          "value": "G",
+          "selected": false
+        },
+        {
+          "text": "SMS/Email",
+          "value": "SME",
+          "selected": false
+        },
+        {
+          "text": "Payment Gateway",
+          "value": "P",
+          "selected": false
+        },
+        {
+          "text": "Device Tracking",
+          "value": "DT",
+          "selected": false
+        },
+        {
+          "text": "Reward",
+          "value": "R",
+          "selected": false
+        },
+        {
+          "text": "Point of Sale",
+          "value": "POS",
+          "selected": false
+        },
+        {
+          "text": "Wallet",
+          "value": "W",
+          "selected": false
+        },
+        {
+          "text": "Robotics Integration",
+          "value": "RI",
+          "selected": false
+        },
+        {
+          "text": "Packaging Video",
+          "value": "PCK",
+          "selected": false
+        },
+        {
+          "text": "Geocoding",
+          "value": "GC",
+          "selected": false
+        },
+        {
+          "text": "Custom App",
+          "value": "CA",
+          "selected": false
+        },
+        {
+          "text": "E-Filling",
+          "value": "TS",
+          "selected": false
+        },
+        {
+          "text": "CRM",
+          "value": "CRM",
+          "selected": false
+        }
+      ]
+    },
+    {
+      "tag": "SELECT",
+      "id": "status",
+      "name": "status",
+      "type": null,
+      "text": "--- Select --- InActive Active",
+      "value": "1",
+      "placeholder": null,
+      "maxlength": null,
+      "required": false,
+      "disabled": false,
+      "onclick": null,
+      "onchange": "",
+      "options": [
+        {
+          "text": "--- Select ---",
+          "value": "-1",
+          "selected": false
+        },
+        {
+          "text": "InActive",
+          "value": "0",
+          "selected": false
+        },
+        {
+          "text": "Active",
+          "value": "1",
+          "selected": true
+        }
+      ]
+    },
+    {
+      "tag": "SELECT",
+      "id": "userIds",
+      "name": "userIds",
+      "type": null,
+      "text": "--- Select ---",
+      "value": "-1",
+      "placeholder": null,
+      "maxlength": null,
+      "required": false,
+      "disabled": false,
+      "onclick": null,
+      "onchange": "",
+      "options": [
+        {
+          "text": "--- Select ---",
+          "value": "-1",
+          "selected": true
+        }
+      ]
+    }
+  ],
+  "forms": [
+    {
+      "id": "extAppsEnquiryForm",
+      "name": "extAppsEnquiryForm",
+      "action": "https://demo.vineretail.com/eRetailWeb/displayExtAppsEnquiry.action",
+      "method": "post"
+    }
+  ],
+  "handlers": {
+    "saveData": "function saveData(){\t\t\n\t\tif(trimString($(\"#rewardType\").val())==\"-1\" ){\n\t\t\twindow.parent.showAlert('Select ExtApps Type');\n\t\t\ttryFocusBS($(\"#rewardType\"));\n\t\t\treturn false;\n\t\t\t\n\t\t}\n\t\tif (trimString($(\"#type\").val())==\"-1\") {\n\t\t\twindow.parent.showAlert('Select ExtApps Name');\n\t\t\ttryFocusBS($(\"#type\"));\n\t\t\treturn false;\n\t\t}\n\t\tif (trimString($(\"#extAppDescription\").val())==\"\") {\n\t\t\twindow.parent.showAlert('Fill ExtApps Desc');\n\t\t\ttryFocusBS($(\"#extAppDescription\"));\n\t\t\treturn false;\n\t\t}\n\t\tif (trimString($(\"#status\").val())==\"-1\") {\n\t\t\twindow.parent.showAlert('Please Select Status');\n\t\t\ttryFocusBS($(\"#status\"));\n\t\t\treturn false;\n\t\t}\n\t\t/* if (trimString($(\"#DateStr\").val())==\"\") {\n\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\ttryFocusBS($(\"#DateStr\"));\n\t\t\treturn false;\n\t\t} */\n\t\t\n\t\t/* if($(\"#locationtype\").val()=='STOREGRPCODE'){\n\t\t\tif (trimString($(\"#storecodetype\").val())==\"-1\"){\n\t\t\t\twindow.parent.showAlert('Please select store Group');\n\t\t\t\ttryFocusBS($(\"#storecodetype\"));\n\t\t\t\treturn false;\n\t\t\t}\n\t\t} */\n\t\t\n\t\t\t\t\t\n\t\t\n\t\tfor ( var counter = 0; counter < authListCopy.length  ; counter++) {\n\t\t\t\n\t\t\tvar dbField = authListCopy[counter].dbField;\n\t\t\tvar isOptional = authListCopy[counter].isOptional;\n\t\t\tvar fieldType = authListCopy[counter].fieldType;\n\t\t\tdbField = dbField.toLowerCase();\n\t\t\t\n\t\t\tif((null == fieldType || fieldType == 'textBox') && !isOptional ){\n\t\t\t\t\n\t\t\t\t\n\t\t\t\tif(trimString($(\"#\"+dbField).val())==\"\"){\n\t\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\t\ttryFocusBS($(\"#\"+dbField));\n\t\t\t\t\t\n\t\t\t\t\treturn false;\n\t\t\t\t}\n\t\t\t\t\n\t\t\t}\n\t\t\t\n\t\t\tif((fieldType == 'dropdown') && !isOptional ){\n\t\t\t\tif ($(\"#type\").val() === \"58\" && ($(\"#\"+dbField).val()==\"-1\" || $(\"#\"+dbField).val()==\"\")) { //VE-103655 S\n\t\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\t\ttryFocusBS($(\"#\"+dbField));\n\t\t\t\t\treturn false;\n\t\t\t\t}\n\t\t\t\tif ($(\"#type\").val() != \"58\" && (trimString($(\"#\"+dbField).val())==\"-1\" || trimString($(\"#\"+dbField).val())==\"\")) {\n\t\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\t\ttryFocusBS($(\"#\"+dbField));\n\t\t\t\t\treturn false;\n\t\t\t\t} //VE-103655 E\n\t\t\t}\n\t\t\tif((fieldType == 'Number') && !isOptional ){\n\t\t\t\t\n\t\t\t\t\n\t\t\t\tif(trimString($(\"#\"+dbField).val())==\"\"){\n\t\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\t\ttryFocusBS($(\"#\"+dbField));\n\t\t\t\t\treturn false;\n\t\t\t\t}\n\t\t\t\telse{\n\t\t\t\t\tvar pattern = /^\\d+$/;\n\t\t\t        if(!pattern.test($(\"#\"+dbField).val())){\n\t\t\t        \twindow.parent.showAlert('Field Value should be numeric only');\n\t\t\t        \ttryFocusBS($(\"#\"+dbField));\n\t\t\t\t\t\treturn false;\n\t\t\t        }\n\t\t\t\t}\n\t\t\t\t\n\t\t\t}\n\t\t\t\t\t\t\n\t\t}\n\t\tif($(\"#copyFlag\").val()==\"true\"){\n\t\t\t$(\"#extSubId\").val('');\n\t\t}\n\t\t\n\t\tif($(\"#rewardType\").val()!='W' && $(\"#rewardType\").val()!='G' && $(\"#rewardType\").val()!='EDC'){ //VE_3245 //VE-16724 S E\n\t\t\t$(\"#locationtype\").val('');\t\t\t\n\t\t\t//$(\"#storecodetype\").val('');\n\t\t\t\n\t\t}\n\t\t//VE-16080 S\n\t\tif($(\"#rewardType\").val() == \"POS\" && ($(\"#type\").val() == \"20\" || $(\"#type\").val() == \"21\")){//VE-19424 S\n\t\t\t\n\t\t\tif($(\"#username\").val() == \"\" ||  $(\"#username\").val() == undefined){\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#username\"));\n\t\t\t\treturn false;\n\t\t\t} else if($(\"#password\").val() == \"\" ||  $(\"#password\").val() == undefined){\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#password\"));\n\t\t\t\treturn false;\n\t\t\t} else if($(\"#extappurl\").val() == \"\" ||  $(\"#extappurl\").val() == undefined){\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#extappurl\"));\n\t\t\t\treturn false;\n\t\t\t} else if($(\"#salespushstatus\").val() == \"-1\" ||  $(\"#salespushstatus\").val() == undefined){\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#salespushstatus\"));\n\t\t\t\treturn false;\n\t\t\t} else if($(\"#returnpushstatus\").val() == \"-1\" ||  $(\"#returnpushstatus\").val() == undefined){\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#returnpushstatus\"));\n\t\t\t\treturn false;\n\t\t\t}\n\t\t\n\t\t\tif($(\"#type\").val() == \"20\" ) {\n\t\t\t\t\n\t\t\t\tif($(\"#salesorderprefix\").val() == \"\" ||  $(\"#salesorderprefix\").val() == undefined){\n\t\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\t\ttryFocusBS($(\"#salesorderprefix\"));\n\t\t\t\t\treturn false;\n\t\t\t\t} else if($(\"#rcumembership\").val() == \"\" ||  $(\"#rcumembership\").val() == undefined){\n\t\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\t\ttryFocusBS($(\"#rcumembership\"));\n\t\t\t\t\treturn false;\n\t\t\t\t} \n\t\t\t}//VE-19424 E\n\t\t}\n\t\tif($(\"#rewardType\").val() == \"POS\" && ($(\"#type\").val() == \"23\")){//VE-19424 S\n\t\t\t\n\t\t\tif($(\"#username\").val() == \"\" ||  $(\"#username\").val() == undefined){\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#username\"));\n\t\t\t\treturn false;\n\t\t\t} else if($(\"#password\").val() == \"\" ||  $(\"#password\").val() == undefined){\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#password\"));\n\t\t\t\treturn false;\n\t\t\t} else if($(\"#extappurl\").val() == \"\" ||  $(\"#extappurl\").val() == undefined){\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#extappurl\"));\n\t\t\t\treturn false;\n\t\t\t} else if($(\"#salespushstatus1\").val() == \"-1\" ||  $(\"#salespushstatus1\").val() == undefined){\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#salespushstatus1\"));\n\t\t\t\treturn false;\n\t\t\t}else if($(\"#salespushstatus2\").val() == \"-1\" ||  $(\"#salespushstatus2\").val() == undefined){\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#salespushstatus2\"));\n\t\t\t\treturn false;\n\t\t\t} else if($(\"#returnpushstatus\").val() == \"-1\" ||  $(\"#returnpushstatus\").val() == undefined){\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#returnpushstatus\"));\n\t\t\t\treturn false;\n\t\t\t}\n\t\t\tif($(\"#salesorderprefix\").val() == \"\" ||  $(\"#salesorderprefix\").val() == undefined){\n\t\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\t\ttryFocusBS($(\"#salesorderprefix\"));\n\t\t\t\t\treturn false;\n\t\t\t\t} else if($(\"#rcumembership\").val() == \"\" ||  $(\"#rcumembership\").val() == undefined){\n\t\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\t\ttryFocusBS($(\"#rcumembership\"));\n\t\t\t\t\treturn false;\n\t\t\t\t} \n\t\t}\n\tif($(\"#rewardType\").val() == \"POS\" && ($(\"#type\").val() == \"24\")){//VE-19424 S\n\t\t\t\n\t\t\tif($(\"#username\").val() == \"\" ||  $(\"#username\").val() == undefined){\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#username\"));\n\t\t\t\treturn false;\n\t\t\t} else if($(\"#password\").val() == \"\" ||  $(\"#password\").val() == undefined){\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#password\"));\n\t\t\t\treturn false;\n\t\t\t} else if($(\"#extappurl\").val() == \"\" ||  $(\"#extappurl\").val() == undefined){\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#extappurl\"));\n\t\t\t\treturn false;\n\t\t\t} else if($(\"#salespushstatus1\").val() == \"-1\" ||  $(\"#salespushstatus1\").val() == undefined){\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#salespushstatus1\"));\n\t\t\t\treturn false;\n\t\t\t}else if($(\"#salespushstatus2\").val() == \"-1\" ||  $(\"#salespushstatus2\").val() == undefined){\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#salespushstatus2\"));\n\t\t\t\treturn false;\n\t\t\t} else if($(\"#returnpushstatus\").val() == \"-1\" ||  $(\"#returnpushstatus\").val() == undefined){\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#returnpushstatus\"));\n\t\t\t\treturn false;\n\t\t\t}\n\t\t\telse if($(\"#returnpushstatus2\").val() == \"-1\" ||  $(\"#returnpushstatus2\").val() == undefined){\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#returnpushstatus2\"));\n\t\t\t\treturn false;\n\t\t\t}\n\t\t\n\t\t}\n\tif( $(\"#type\").val() == \"45\" || $(\"#type\").val() == \"55\"){\n\t\tif($(\"#username\").val() == \"\" ||  $(\"#username\").val() == undefined){\n\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\ttryFocusBS($(\"#username\"));\n\t\t\treturn false;\n\t\t} else if($(\"#password\").val() == \"\" ||  $(\"#password\").val() == undefined){\n\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\ttryFocusBS($(\"#password\"));\n\t\t\treturn false;\n\t\t}\n\t}\n\t\n\t\t//VE-18941 S\n\t\tif($(\"#rewardType\").val() == \"TS\"){\n\t\t\tlet model = $(\"#model\").val();\n\t\t\tif(model == undefined || model == \"-1\") {\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#model\"));\n\t\t\t\treturn false;\n\t\t\t} \n\t\t\t//SuperTax\n\t\t\tif((model == 1 || model == 3) && $(\"#type\").val() == \"22\" && ($(\"#extappurl\").val() == undefined || $(\"#extappurl\").val() == \"\")) {\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#extappurl\"));\n\t\t\t\treturn false;\n\t\t\t}\n\t\t\t//ClearTax validation\n\t\t\tif((model == 1 || model == 3)  && $(\"#type\").val() == \"18\" && ($(\"#authtoken\").val() == undefined || $(\"#authtoken\").val() == \"\")) {\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#authtoken\"));\n\t\t\t\treturn false;\n\t\t\t}/*  else if((model == 2 || model == 3) && ($(\"#authtokenewb\").val() == undefined || $(\"#authtokenewb\").val() == \"\")) {\n\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\ttryFocusBS($(\"#authtokenewb\"));\n\t\t\t\treturn false;\n\t\t\t} */\n\t\t\t\n\t\t\tif($(\"#type\").val() == \"59\"){\n\t\t\t\t//Vayana Email\n\t\t\t\tif(!isNotBlank($(\"#credential1\").val())){\n\t\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\t\ttryFocusBS($(\"#credential1\"));\n\t\t\t\t\treturn false;\n\t\t\t\t} else if(!isNotBlank($(\"#password\").val())){\n\t\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\t\ttryFocusBS($(\"#password\"));\n\t\t\t\t\treturn false;\n\t\t\t\t} else if(!isNotBlank($(\"#credential13\").val())){//Vayana Organization\n\t\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\t\ttryFocusBS($(\"#credential13\"));\n\t\t\t\t\treturn false;\n\t\t\t\t}\n\t\t\t\t\n\t\t\t}\n\t\t}\n\t\t//VE-18941 E\n\t\t//VE-16080 E\n//VE-16724 S\t\t\n\t\tif($(\"#rewardType\").val() == \"EDC\"){\n\t\t\tif($('#userIds').val()=='-1'){\n\t\t\t\twindow.parent.showAlert('common.extapps.msg.001');\n\t\t\t\ttryFocusBS($(\"#userIds\"));\n\t\t\t\treturn false;\n\t\t\t}\n\t\t\tif($(\"#locationtype\").val()=='**'){\n\t\t\t\twindow.parent.showAlert('common.extapps.msg.002');\n\t\t\t\ttryFocusBS($(\"#locationtype\"));\n\t\t\t\treturn false;\n\t\t\t}\n\t\t}\n//VE-16724 E\n\t\t//VE-16052 S\n\t\tlet forceUpdate = \"\";\n\t\tif($(\"#rewardType\").val() == \"TS\" || $(\"#rewardType\").val() == \"POS\" || $(\"#rewardType\").val() == \"F\" || $(\"#rewardType\").val() == \"CA\" || $(\"#rewardType\").val() == \"PCK\" || $(\"#rewardType\").val() == \"CRM\" || $(\"#rewardType\").val() == \"GC\" || $(\"#rewardType\").val() == \"R\"){ //VE-32865\n\t\t\t\n\t\t\tvar retVal = $.ajax({\n\t\t\t\turl : \"checkTaxIntConfigured\",\t\t\t\t\n\t\t\t\ttype : \"POST\",\n\t\t\t\tdata : {\n\t\t\t\t\textappType:$(\"#rewardType\").val(),\n\t\t\t\t\textappid:$(\"#type\").val(),\n\t\t\t\t    billToParty : $(\"#billToParty\").val(),\n\t\t\t\t    clientId : $(\"#clientId\").val(),\n\t\t\t\t    model\t : $(\"#model\").val(),\n\t\t\t\t    extAppSubId : $(\"#extSubId\").val()\n\t\t\t\t},\n\t\t\t\tdataType : \"json\",\n\t\t\t\tasync : false\n\t\t\t}).responseText;\n\t\t\t\n\t\t\tretVal = jQuery.parseJSON(retVal);\n\n\t\t\tif(retVal.customMap != null && retVal.customMap != \"\" && !jQuery.isEmptyObject(retVal.customMap)){\n\t\t\t\tif (retVal.customMap.extAppSubId != null){\n\t\t\t\t\tif( $(\"#rewardType\").val() == \"TS\" && confirm(\"One tax detail already configured. Do you want to update existing data?\")) {\n\t\t\t\t\t\tforceUpdate = \"1\";\n\t\t\t\t\t} else if( $(\"#rewardType\").val() == \"POS\" && confirm(\"One ERP detail already configured. Do you want to update existing data?\")) {\n\t\t\t\t\t\tforceUpdate = \"1\";\n\t\t\t\t\t}else if( $(\"#rewardType\").val() == \"F\" && confirm(\"One ERP detail already configured. Do you want to update existing data?\")) {\n\t\t\t\t\t\tforceUpdate = \"1\";\n\t\t\t\t\t}//VE-32865\n\t\t\t\t\telse if( $(\"#rewardType\").val() == \"CA\" && confirm(\"One Custome App detail already configured. Do you want to update existing data?\")) {\n\t\t\t\t\t\tforceUpdate = \"1\";\n\t\t\t\t\t}else if( $(\"#rewardType\").val() == \"PCK\" && confirm(\"One Packaging video detail already configured. Do you want to update existing data?\")) {\n\t\t\t\t\t\tforceUpdate = \"1\";\n\t\t\t\t\t}else if( $(\"#rewardType\").val() == \"CRM\" && confirm(\"One MO Engage already configured. Do you want to update existing data?\")) {\n\t\t\t\t\t\tforceUpdate = \"1\";\n\t\t\t\t\t}else if( $(\"#rewardType\").val() == \"GC\" && confirm(\"One MO Engage already configured. Do you want to update existing data?\")) {\n\t\t\t\t\t\tforceUpdate = \"1\";\n\t\t\t\t\t}else if( $(\"#rewardType\").val() == \"R\" && confirm(\"One Easy Reward already configured. Do you want to update existing data?\")) {\n\t\t\t\t\t\tforceUpdate = \"1\";\n\t\t\t\t\t}\n\t\t\t\t\telse{\n\t\t\t\t\t\tforceUpdate = \"0\";\n\t\t\t\t\t\treturn false;\n\t\t\t\t\t}\n\t\t\t\t} else{\n\t\t\t\t\tforceUpdate = \"0\";\n\t\t\t\t\treturn false;\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t\t//VE-16052 E\n\t\t//VE-16080 S \n\t\twindow.setTimeout(function(){\n\t\t\t// VE-15082 S\n\t\t\tlet salesChannels = $(\"#saleschannel\").val();\n\t\t\tlet salesChannel = \"\";\n\t\t\tif(salesChannels != null && salesChannels!=undefined && salesChannels != \"\")\n\t\t\t$.each(salesChannels, function(i, value){\n\t\t\t\tsalesChannel += (salesChannel != \"\") ? \",\"+value : value;\n\t\t\t});\n\t\t\t// VE-15082 E\n\t\t\t\n\t\t\tlet excludelocations = $(\"#excludelocation\").val();\n\t\t\tlet excludelocation = \"\";\n\t\t\tif(excludelocations != null && excludelocations != undefined && excludelocations != \"\")\n\t\t\t$.each(excludelocations, function(i, value){\n\t\t\t\texcludelocation += (excludelocation != \"\") ? \",\"+value : value;\n\t\t\t});\n\t\t\t\n\t\t\tlet refundevents = $(\"#refundevents\").val();\n\t\t\tlet refundevent = \"\";\n\t\t\t//VE-15510 S\n\t\t\tlet refundRtoCount = 0;\n\t\t\tlet refundReverseCount = 0;\n\t\t\tif(refundevents != null && refundevents != undefined && refundevents != \"\") {\n\t\t\t\t$.each(refundevents, function(i, value){\n\t\t\t\t\trefundevent += (refundevent != \"\") ? \",\"+value : value;\n\t\t\t\t\tif(value == 5 || value == 6 || value == 7)\n\t\t\t\t\t\trefundRtoCount++;\n\t\t\t\t\telse if(value == 8 || value == 9 || value == 10)\n\t\t\t\t\t\trefundReverseCount++;\n\t\t\t\t});\n\t\t\t}\n\t\t\tif(refundRtoCount > 1) {\n\t\t\t\twindow.parent.showAlert('Only 1 can be added from RTO- Init, delivered, Closed');\n\t\t\t\ttryFocusBS($(\"#refundevents\"));\n\t\t\t\treturn false;\n\t\t\t} else if(refundReverseCount > 1) {\n\t\t\t\twindow.parent.showAlert('Only 1 can be added from ReversePickUpDone, ReversePickupDelivered, Return Closed');\n\t\t\t\ttryFocusBS($(\"#refundevents\"));\n\t\t\t\treturn false;\n\t\t\t}\n\t\t\t//VE-15510 E\n\t\t\t//VE-32865 S\n\t\t\tif($(\"#type\").val()==27){\n\t\t\tif($(\"#organizationid\").val()==\"\" || $(\"#organizationid\").val() == undefined){\n\t\t\t\ttryFocusBS($(\"#organizationid\"));\n\t\t\t\twindow.parent.showAlert('Required Field');\n\t\t\t\treturn false;\n\t\t\t}if($(\"#clientidzoho\").val()==\"\" || $(\"#clientidzoho\").val() == undefined){\n\t\t\t\ttryFocusBS($(\"#clientidzoho\"));\n\t\t\t\twindow.parent.showAlert('Required Field');\n\t\t\t\treturn false;\n\t\t\t}if($(\"#clientsecret\").val()==\"\" || $(\"#clientsecret\").val() == undefined){\n\t\t\t\ttryFocusBS($(\"#clientsecret\"));\n\t\t\t\twindow.parent.showAlert('Required Field');\n\t\t\t\treturn false;\n\t\t\t}\n\t\t\t}\n\t\t\tif($(\"#type\").val()==\"55\"){\n\t\t\t\tif($(\"#credential1\").val() == \"\" ||  $(\"#credential1\").val() == undefined){\n\t\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\t\ttryFocusBS($(\"#credential1\"));\n\t\t\t\t\treturn false;\n\t\t\t\t} else if($(\"#credential2\").val() == \"\" ||  $(\"#credential2\").val() == undefined){\n\t\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\t\ttryFocusBS($(\"#credential2\"));\n\t\t\t\t\treturn false;\n\t\t\t\t} else if($(\"#programcode\").val() == \"\" ||  $(\"#programcode\").val() == undefined){\n\t\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\t\ttryFocusBS($(\"#programcode\"));\n\t\t\t\t\treturn false;\n\t\t\t\t} else if($(\"#credential3\").val() == \"\" ||  $(\"#credential3\").val() == undefined){\n\t\t\t\t\twindow.parent.showAlert('Fill all mendatory fields');\n\t\t\t\t\ttryFocusBS($(\"#credential3\"));\n\t\t\t\t\treturn false;\n\t\t\t\t}\n\t\t\t\t\n\t\t\t\t$(\"#credential4\").val(document.getElementById('credential4').checked ? 1 : 0);\n\t\t\t\t$(\"#credential7\").val(document.getElementById('credential7').checked ? 1 : 0);\n\t\t\t}\n\t\t\t\n\t\t\t// VE-65461 S\n\t\t\tlet applicableTrans = $(\"#applicabletrans\").val();\n\t\t\tlet applicableTran = \"\";\n\t\t\tif(applicableTrans != null && applicableTrans != undefined && applicableTrans != \"\") {\n\t\t\t\t$.each(applicableTrans, function(i, value){\n\t\t\t\t\tapplicableTran += (applicableTran != \"\") ? \",\"+value : value;\n\t\t\t\t});\n\t\t\t}\n\t\t\tlet b2bChannels = $(\"#b2bchannel\").val();\n\t\t\tlet b2bChannel = \"\";\n\t\t\tif(b2bChannels != null && b2bChannels!=undefined && b2bChannels != \"\") {\n\t\t\t\t$.each(b2bChannels, function(i, value){\n\t\t\t\t\tb2bChannel += (b2bChannel != \"\") ? \",\"+value : value;\n\t\t\t\t});\n\t\t\t}\n\t\t\t// VE-65461 E\n\t\t\t//VE-32865 E\n\t\t\t//return false;\n\t\t\twindow.parent.blockUIStart();\n\t\t\tvar retVal = $.ajax({\n\t\t\t\turl : \"saveExternalAppsData\",\n\t\t\t\t\n\t\t\t\ttype : \"POST\",\n\t\t\t\tdata : {\n\t\t\t\t\tapikey : $(\"#apikey\").val(),\n\t\t\t\t\textappType:$(\"#rewardType\").val(),\n\t\t\t\t\tapipassword : $(\"#apipassword\").val(),\n\t\t\t\t\tcustomertype:$(\"#customertype\").val(),\n\t\t\t\t\textappid:$(\"#type\").val(),\n\t\t\t\t\textsubid:$(\"#extSubId\").val(),\n\t\t\t\t\textappdesc1:$(\"#extAppDescription\").val(),\n\t\t\t\t\textappdesc: typetempmap[$(\"#type\").val()],\n\t\t\t\t\tdaysafterdelivery:$(\"#daysafterdelivery\").val(),\n\t\t\t\t\tuser:$(\"#username\").val(),\n\t\t\t\t\tuserpassword:$(\"#password\").val(),\n\t\t\t\t\t//programcode:$(\"#programcode\").val(),\n\t\t\t\t\tprogramcode: Array.isArray($(\"#programcode\").val()) ? $(\"#programcode\").val().join(\",\") : $(\"#programcode\").val(), //VE-103655 S E\n\t\t\t\t\tapiuser:$(\"#apiusername\").val(),\n\t\t\t\t\torder:$(\"#ordertype\").val(),\n\t\t\t\t\tordersource:$(\"#ordersource\").val(),\n\t\t\t\t\tchannel:$(\"#channelname\").val(),\n\t\t\t\t\tcredential1:$(\"#credential1\").val(),\n\t\t\t\t\tcredential2:$(\"#credential2\").val(),\n\t\t\t\t\tcredential3:$(\"#credential3\").val(),\n\t\t\t\t\tcredential4:$(\"#credential4\").val(),\n\t\t\t\t\tcredential5:$(\"#credential5\").val(),\n\t\t\t\t\tcredential6:$(\"#credential6\").val(),\n\t\t\t\t\tcredential7:$(\"#credential7\").val(),\n\t\t\t\t\tcredential8:$(\"#credential8\").val(),\n\t\t\t\t\tcredential9:$(\"#credential9\").val(),\n\t\t\t\t\tcredential0:$(\"#credential10\").val(),\n\t\t\t\t\tcredential10:$(\"#credential10\").val(),\n\t\t\t\t\tcredential11:$(\"#credential11\").val(),\n\t\t\t\t\textappurl:$(\"#extappurl\").val(),\n\t\t\t\t\timagename:extimgname,\n\t\t\t\t\tstoreid:$(\"#storeid\").val(),\n\t\t\t\t\tstatus:$(\"#status\").val(),\n\t\t\t\t\tmaxCrdVal:$(\"#maxcrdval\").val(),\n\t\t\t\t\tminCrdVal:$(\"#mincrdval\").val(),\n\t\t\t\t\tMaxCrdAlwSell:$(\"#maxcrdalwsell\").val(),\n\t\t\t\t\tMaxCrdAlwRedeem:$(\"#maxcrdalwredeem\").val(),\n\t\t\t\t\tlocationcode:$(\"#locationtype\").val(),\n\t\t\t\t\tauthtoken:$(\"#authtoken\").val(),\n\t\t\t\t\tauthcode:$(\"#authcode\").val(),\n\t\t\t\t\textbilltopartycode:$(\"#extbilltopartycode\").val(),\n\t\t\t\t\t//storecode:$(\"#storecodetype\").val()\n\t\t\t\t     billToParty : $(\"#billToParty\").val(), //VE-6807 SE\n\t\t\t\t     clientId : $(\"#clientId\").val(), //VE-6807 SE\n\t\t\t\t     \n\t\t\t\t     custPushDateTime : $(\"#checkBoxcustomer\").is(\":checked\") ? $(\"#customer\").val() : null,\n\t\t\t\t     custPullDateTime : $(\"#checkBoxcustomerpull\").is(\":checked\") ? $(\"#customerpull\").val() : null,\n\t\t\t\t     salesDateTime \t  : $(\"#checkBoxsales\").is(\":checked\") ? $(\"#sales\").val() : null,\n\t\t\t\t     purchaseDateTime : $(\"#checkBoxpurchase\").is(\":checked\") ? $(\"#purchase\").val() : null,\n\t\t\t\t     purchasereturnDateTime : $(\"#checkBoxpurchasereturn\").is(\":checked\") ? $(\"#purchasereturn\").val() : null,\n\t\t\t\t     salesreturnDateTime : $(\"#checkBoxsalesreturn\").is(\":checked\") ? $(\"#salesreturn\").val() : null,\n\t\t\t\t     vendorPushDateTime : $(\"#checkBoxvendor\").is(\":checked\") ? $(\"#vendor\").val() : null,\n\t\t\t\t     vendorPullDateTime :  $(\"#checkBoxvendorpull\").is(\":checked\") ? $(\"#vendorpull\").val(): null,\n\t\t\t\t     itemDateTime : $(\"#checkBoxsku\").is(\":checked\") ? $(\"#sku\").val() : null,//VE-32865\n\t\t\t\t     \n\t\t\t\t     custPushCheckBox : $(\"#checkBoxcustomer\").is(\":checked\") ? 1:0,\n\t\t\t\t     custPullCheckBox : $(\"#checkBoxcustomerpull\").is(\":checked\") ? 1:0,\n\t\t\t\t     itemCheckBox : $(\"#checkBoxsku\").is(\":checked\") ? 1:0,//VE-32865\n\t\t\t\t     salesCheckBox : $(\"#checkBoxsales\").is(\":checked\") ? 1:0,\n\t\t\t\t     purchaseCheckBox : $(\"#checkBoxpurchase\").is(\":checked\") ? 1:0,\n\t\t\t\t     salesreturnCheckBox : $(\"#checkBoxsalesreturn\").is(\":checked\") ? 1:0,\n\t\t\t\t     purchasereturnCheckBox : $(\"#checkBoxpurchasereturn\").is(\":checked\") ? 1:0,\n\t\t\t\t     vendorPushCheckBox : $(\"#checkBoxvendor\").is(\":checked\") ? 1:0,\n\t\t\t\t     vendorPullCheckBox : $(\"#checkBoxvendorpull\").is(\":checked\") ? 1:0,\n\t\t\t\t     \n\t\t\t\t     skuPushEnabled : $(\"#checkBoxsku\").is(\":checked\") ? 1:0,//VE-32865\n\t\t\t\t     customerPullEnabled : $(\"#checkBoxcustomerpull\").is(\":checked\") ? 1:0,\n\t\t\t\t     customerPushEnabled : $(\"#checkBoxcustomer\").is(\":checked\") ? 1:0,\n\t\t\t\t     salesEnabled : $(\"#checkBoxsales\").is(\":checked\") ? 1:0,\n\t\t\t\t     salesReturnEnabled : $(\"#checkBoxsalesreturn\").is(\":checked\") ? 1:0,\n\t\t\t\t     vendorPullEnabled : $(\"#checkBoxvendorpull\").is(\":checked\") ? 1:0,\n\t\t\t\t     vendorPushEnabled : $(\"#checkBoxvendor\").is(\":checked\") ? 1:0,\n\t\t\t\t     purchaseEnabled   : $(\"#checkBoxpurchase\").is(\":checked\") ? 1:0,\n\t\t\t\t     purchaseReturnEnabled : $(\"#checkBoxpurchasereturn\").is(\":checked\") ? 1:0,\n\t\t\t\t     gstin \t\t\t: $(\"#gstin\").val(),\n\t\t\t\t     model \t\t\t: $(\"#model\").val(),\n\t\t\t\t     salesChannel \t: salesChannel,\n\t\t\t\t     salesinvoice \t: $(\"#salesinvoice\").is(\":checked\") ? 1:0,\n\t\t\t\t     customerreturn : $(\"#customerreturns\").is(\":checked\") ? 1:0,\n\t\t\t\t     EWaybillmandonManifest : $(\"#ewaybillmandmanifest\").is(\":checked\") ? 1:0,\t \n\t\t\t\t     purchasereturn : $(\"#purchasereturns\").is(\":checked\") ? 1:0,\n\t\t    \t\t stoOrder \t\t: $(\"#stoorder\").is(\":checked\") ? 1:0,\n    \t\t\t\t pullInvoicePdf : $(\"#pullinvoicepdf\").is(\":checked\") ? 1:0,\n\t\t\t\t\t pushB2cInvoice : $(\"#pushb2cinvoice\").is(\":checked\") ? 1:0,\n\t\t\t\t\t //VE-16029 S\n\t\t\t\t\t ownerid \t\t: $(\"#ownerid\").val(),\n\t\t\t\t\t forceUpdate\t: forceUpdate,\n\t\t\t\t\t //VE-16029 E\n\t\t\t\t\t //VE-16080 S\n\t\t\t\t\t salespushstatus : $(\"#salespushstatus\").val(), \n\t\t\t\t\t salespushstatus1 : $(\"#salespushstatus1\").val(),\n\t\t\t\t\t salespushstatus2 : $(\"#salespushstatus2\").val(),\n\t\t\t\t\t returnpushstatus : $(\"#returnpushstatus\").val(),\n\t\t\t\t\t returnpushstatus2 : $(\"#returnpushstatus2\").val(),\n\t\t\t\t\t taxlocal \t\t: $(\"#taxlocal\").val(),\n\t\t\t\t\t taxinterstate \t: $(\"#taxinterstate\").val(),\n\t\t\t\t\t taxexport \t\t: $(\"#taxexport\").val(),\n\t\t\t\t\t rcumembership \t: $(\"#rcumembership\").val(),\n\t\t\t\t\t salesorderprefix \t: $(\"#salesorderprefix\").val(),\n\t\t\t\t\t invoicescheduler\t: $(\"#invoicescheduler\").is(\":checked\") ? 1:0,\n\t\t\t\t\t salesscheduler\t\t: $(\"#salesscheduler\").is(\":checked\") ? 1:0,\n\t\t\t\t\t cancelscheduler\t\t: $(\"#cancelscheduler\").is(\":checked\") ? 1:0,\t\t \n\t\t\t\t\t returnscheduler\t: $(\"#returnscheduler\").is(\":checked\") ? 1:0,\n\t\t\t\t\t invoiceschedulerdate\t: $(\"#invoiceschedulerdate\").val(),\n\t\t\t\t\t salesschedulerdate\t\t: $(\"#salesschedulerdate\").val(),\n\t\t\t\t\t cancelschedulerdate\t\t: $(\"#cancelschedulerdate\").val(),\n\t\t\t\t\t returnschedulerdate\t: $(\"#returnschedulerdate\").val(),\n\t\t\t\t\t//VE-16080 E\n\t\t\t\t\t authtokenewb\t\t\t: $(\"#authtokenewb\").val(),//VE-18941 SE\n\t\t\t\t\t excludelocation\t\t: excludelocation,\n\t\t\t\t\t refundevent\t\t\t: refundevent,\n\t\t\t\t\t//VE-16724 S E\n\t\t\t\t\t userId\t\t\t\t:\t$('#userIds').val(),\n\t\t\t\t\t ewaybillsummary    :    $('#ewaybillsummary').val(), //VE-33745\n\t\t\t\t\t clintIdZoho\t : $('#clientidzoho').val(), //VE-32865\n\t\t\t\t\t clientsecret\t:  $('#clientsecret').val(), //VE-32865\n\t\t\t\t\t organization_id : $('#organizationid').val(), //VE-32865\n\t\t\t\t\t deviceIdMandatory : $(\"#credential1\").is(\":checked\") ? 1:0,//VE-47986 SE\n\t\t\t\t\t applicableTran\t\t: applicableTran,//VE-65461 SE\n\t\t\t\t\t emaileInvoice\t\t: $(\"#emaileinvoice\").is(\":checked\") ? 1:0,\n\t\t\t\t\t b2bChannel\t\t\t: b2bChannel,\n\t\t\t\t\t salesorderjarvis :  $('#salesorderjarvis').val(),\n\t\t\t\t\t stoorderjarvis  : $('#stoorderjarvis').val(),\n\t\t\t\t\t rtvorderjarvis : $('#rtvorderjarvis').val(),\n\t\t\t\t\t credential12 : $('#irncancel').val(),\n\t\t\t\t\t orderstatus    :    $('#orderstatus').val() != null ? $('#orderstatus').val().toString() : null,\n\t\t\t\t\t returnstatus    :    $('#returnstatus').val() != null ? $('#returnstatus').val().toString() :null,\n\t\t\t\t\t location\t\t: $(\"#location\").val(),\n\t\t\t\t\t credential14\t: $(\"#credential14\").val(),\t\n\t\t\t\t\t credential15\t: $(\"#credential15\").val(),\n\t\t\t\t\t autoEwbGen \t: $(\"#credential14\").is(\":checked\") ? 1:0\t\t\t\t\t \n\t\t\t\t\t},\t\t\t\t\t\t\t\t\t\n\t\t\t\tdataType : \"json\",\n\t\t\t\tasync : false\n\t\t\t}).responseText;\n\t\t\t\n\t\t\tretVal = jQuery.parseJSON(retVal);\n\t\t\tif(retVal != null){\n\t\t\t\trewardDTO = retVal.rewardMaintDTO;\n\t\t\t\tif(rewardDTO != null && rewardDTO.extAppSubId != 0){\n\t\t\t\t\t$(\"#extSubId\").val(rewardDTO.extAppSubId);\n\t\t\t\t\t$(\"#clientId\").attr(\"disabled\", \"disabled\");\n\t\t\t\t}\n\t\t\t}\n\t\t\tif(retVal != null){\n\t\t\t\tif(retVal.jsonMessage == null){\n\t\t\t\t\trewardDTO = retVal.rewardMaintDTO;\n\t\t\t\t\tif(rewardDTO != null && rewardDTO.saveStatus =='1'){\n\t\t\t\t\t       // resetAll();\n\t\t\t\t\t        window.parent.blockUIEnd();\n\t\t\t\t\t\t\twindow.parent.showAlert(\"Record Saved Successfully\");\n\t\t\t\t\t\t\t//VE-8956 S\n\t\t\t\t\t\t\tif(rewardDTO.credential0 != null){\n\t\t\t\t\t\t\t\t$(\"#urlDownloadButtondiv\").show();\n\t\t\t\t\t\t\t}\n                            //VE-8956 E\n                            \n                            if ($(\"#type\").val() == \"43\") {\n                            \t$(\"#redirectErpIntButton\").show();\n                            }\n                            if(rewardDTO.extAppId == 49 ){\n                            if(rewardDTO.userName != null)\n                            \t$('#username').val(rewardDTO.userName);\t\n                            \n \t\t\t\t\t\t\tif(rewardDTO.userPassword != null){\n \t\t\t\t\t\t\t\t$('#password').val(rewardDTO.userPassword);\n                            }\n                            }\n\t\t\t\t\t\t}else{\n\t\t\t\t\t\t\t window.parent.blockUIEnd();\n\t\t\t\t\t\t\t \n\t\t\t\t\t\t\twindow.parent.showAlert(rewardDTO.saveMessage);\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\telse{\n\t\t\t\t\twindow.parent.showAlert(\"Failed to update Data\");\n\t\t\t\t}\n\t\t\t\t\n\t\t\t}\n\t\t\t},2000);\n\n\t/* \t if($(\"#type\").val() == '12' && $(\"#authcode\").val() != \"\" && $(\"#authcode\").val() != null) \n\t\t\t $.ajax({\n\t\t\t\t\turl : \"verifyFinancialAuthentcation\",\n\t\t\t\t\t\n\t\t\t\t\ttype : \"POST\",\n\t\t\t\t\tdata : {\n\t\t\t\t\t\tapikey : $(\"#apikey\").val(),\n\t\t\t\t\t\textappType:$(\"#rewardType\").val(),\n\t\t\t\t\t\tapipassword : $(\"#apipassword\").val(),\n\t\t\t\t\t\textappid:$(\"#type\").val(),\n\t\t\t\t\t\textsubid:$(\"#extSubId\").val(),\n\t\t\t\t\t\tuser:$(\"#username\").val(),\n\t\t\t\t\t\tuserpassword:$(\"#password\").val(),\n\t\t\t\t\t\tauthcode:$(\"#authcode\").val(),\n\t\t\t\t\t     billToParty : $(\"#billToParty\").val(), //VE-6807 SE\n\t\t\t\t\t     clientId : $(\"#clientId\").val() //VE-6807 SE\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\n\t\t\t\t\tdataType : \"json\",\n\t\t\t\t\tasync : false\n\t\t\t\t}).responseText; */\n\t\t$(\"#extAppDescription\").prop(\"disabled\", true);\n\t}",
+    "addNewChannel": "function addNewChannel(){\n\t\t$(\"#extSubId\").val('');\n\t\t\tif (window.parent) {\n\t\t\tvar url = \"displayExtAppsEnquiry\";\n\t\t\twindow.parent.openScreen(\"External Apps Create/Edit\",url, \n\t\t\t\t\t\"fa fa-fw fa-list-ol\");\n\t\t\tresetAll();\n\t\t\treturn false;\n\t\t}\n\t}",
+    "updateTemplateLink": "function updateTemplateLink(elementname){\n\t\t\n\t\tif(elementname=='rewardType'){\n\t\t\tif($(\"#rewardType\").val()==\"Rewards\"){\n\t\t\t\t$(\"#typediv\").show();\n\t\t\t}\n\t\t\telse{\n\t\t\t\t$(\"#type\").val(-1);\n\t\t\t\t$(\"#typediv\").hide();\n\t\t\t\t$(\"#apikey\").val('');\n\t\t\t\t$(\"#apipassword\").val('');\n\t\t\t\t$(\"#customertype\").val('');\n\t\t\t\t$(\"#daysafterdelivery\").val('');\n\t\t\t\t$(\"#username\").val('');\n\t\t\t\t$(\"#password\").val('');\n\t\t\t\t$(\"#credential1\").val('');\n\t\t\t\t$(\"#credential1\").val('');\n\t\t\t\t$(\"#credential2\").val('');\n\t\t\t\t$(\"#credential3\").val('');\n\t\t\t\t$(\"#credential4\").val('');\n\t\t\t\t$(\"#credential5\").val('');\n\t\t\t\t$(\"#credential6\").val('');\n\t\t\t\t$(\"#credential7\").val('');\n\t\t\t\t$(\"#credential8\").val('');\n\t\t\t\t$(\"#credential9\").val('');\n\t\t\t\t$(\"#credential10\").val('');\n\t\t\t\t$(\"#credential11\").val('');\n\t\t\t\t$(\"#configurationpanel\").hide();\n\t\t\t\t//$(\"#statusdiv\").hide();\n\t\t\t\t$(\"#extdesc\").hide();\n\t\t\t\t$(\"#localtiondiv\").hide();\n\t\t\t\t$(\"#storecodediv\").hide();\n\t\t\t\t$(\"textcommentdiv\").hide();\n\t\t\t\t$(\"#userIdDiv\").hide(); //VE-16724 S E\n\t\t\t\textimgname='';\n\t\t\t\tImagePath();\n\t\t\t\t jQuery(\"label[for='myalue']\").html('');\n\t\t\t\t $(\"#status\").val(\"-1\");\n\t\t\t\t//$(\"#Extimage\").hide();\n\t\t\t\t}\n\t\t\t\t\t\t\n\t\t}\n//VE-16724 S\n\t\tif(elementname=='rewardType' && $(\"#rewardType\").val()!=-1){\n\t\t\tif($(\"#rewardType\").val()=='EDC'){\n\t\t\t\t$(\"#locationtype\").find(\"option[value='**']\").remove();\n\t\t\t\t//$(\"#locationtype\").val('UWH');\n\t\t\t\t$(\"#localtiondiv\").show();\n\t\t\t\t$(\"#userIdDiv\").show();\n\t\t\t}\n\t\t\telse if($(\"#rewardType\").val()=='W' || $(\"#rewardType\").val()=='G'){ //VE_3245 \n\t\t\t\t$(\"#localtiondiv\").show();\n//VE-16724 E\n\t\t\t\t/* if($(\"#locationtype\").val()==\"STOREGRPCODE\")\n\t\t\t\t\t$(\"#storecodediv\").show(); */\n\t\t\t\t//$(\"#storecodediv\").show();\n\t\t\t}\n\t\t\telse{\n\t\t\t\t $(\"textcommentdiv\").val('');\n\t\t\t\t$(\"#localtiondiv\").hide();\n\t\t\t\t$(\"#storecodediv\").hide();\n\t\t\t\t}\n\t\t\t\n\t\t\t$(\"#typediv\").show();\n\t\t\tfetchRewardMasterData($(\"#rewardType\").val());\n\t\t\t\n\t\t\t$(\"#typediv\").show();\n\t\t}\n\t\t\n\t\t\n\t\t if(elementname=='type'){\n\t\t\t\n\t\t\t $(\"#status\").val(\"1\");\n\t\t\t fetchRewardMasterDataforExtAppId();\n\t\t\tImagePath();\n\t\t\t openConfigureDialouge();\n\t\t\t $(\"#textcommentdiv\").show();\n\t\t\t\n\t\t }\n\t\t if(elementname=='type' && $(\"#type\").val()=='-1'){\n\t\t\t extimgname='';\n\t\t\t ImagePath();\n\t\t\t jQuery(\"label[for='myalue']\").html('');\n\t\t }\n\t\t\t\t\n\t\t //VE-8956 S\n\t\t if(elementname=='type' && $(\"#type\").val()=='10'){\n\t\t    $(\"#billtoPartyDiv\").show();\t\n\t\t }\n\t\t//VE-8956 e\n\t\t if($(\"#rewardType\").val()=='F'){\n\t\t\t $(\"#billtoPartyDiv\").show();\n\t\t\t $(\"#extbilltopartycode\").val(-1);\n\t\t}\n\t\t if(elementname=='type' && ($(\"#type\").val()=='45' || $(\"#type\").val()=='46')){\n\t\t\t $('#salesorderjarvis').val(0);\n\t\t\t $('#stoorderjarvis').val(0);\n\t\t\t $('#rtvorderjarvis').val(0);\n\t\t }\n\t}"
+  }
+}

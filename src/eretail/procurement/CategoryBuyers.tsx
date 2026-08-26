@@ -6,22 +6,13 @@ import { apiGet, apiSend } from "../../lib/api";
 
 const SIZES = [20, 50, 100, 200];
 const emptyFilters = {
-  buyerCode: "",
   buyerName: "",
   buyerDesc: "",
   phone: "",
   altPhone: "",
   email: "",
   displayIsActive: "-1",
-  udf1: "",
-  udf2: "",
-  udf3: "",
-  udf4: "",
-  udf5: "",
-  createdDate: "",
-  updatedBy: "",
-  updatedDate: "",
-  linkToCategory: "",
+  linkToCategory: [] as string[],
 };
 const blank = () => ({
   buyer_code: "",
@@ -30,7 +21,7 @@ const blank = () => ({
   email: "",
   phone: "",
   alternate_phone: "",
-  active: true,
+  active: false,
   categories: [] as string[],
   udf: ["", "", "", "", ""],
   location: "",
@@ -44,6 +35,25 @@ type Buyer = ReturnType<typeof blank> & {
   displayIsActive?: string;
   linkToCategory?: string;
 };
+const fromLiveRow = (row: any): Buyer => ({
+  ...blank(),
+  buyer_code: String(row.buyerCode ?? row.buyer_code ?? ""),
+  buyer_name: row.buyerName ?? row.buyer_name ?? "",
+  description: row.buyerDesc ?? row.description ?? "",
+  phone: row.phone ?? "",
+  alternate_phone: row.altPhone ?? row.alternate_phone ?? "",
+  email: row.email ?? "",
+  active: row.isActive ?? row.active ?? false,
+  categories: Array.isArray(row.categories) ? row.categories : String(row.linkToCategory || "").split("\u0017").filter(Boolean),
+  udf: row.udf || [row.udf1, row.udf2, row.udf3, row.udf4, row.udf5].map((value) => value || ""),
+  location: row.locationCode ?? row.location ?? "",
+  created_by: row.createdBy ?? row.created_by ?? "",
+  created_date: row.createDate ?? row.created_date ?? "",
+  updated_by: row.modifiedBy ?? row.updated_by ?? "",
+  updated_date: row.modifiedDate ?? row.updated_date ?? "",
+  displayIsActive: row.displayIsActive ?? (row.active === false ? "Inactive" : "Active"),
+  linkToCategory: row.linkToCategory ?? "",
+});
 
 export default function CategoryBuyers() {
   const [filters, setFilters] = useState(emptyFilters);
@@ -58,39 +68,42 @@ export default function CategoryBuyers() {
   const [notice, setNotice] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Buyer>(blank());
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<{ code: string; name: string }[]>([]);
+  const [editorTab, setEditorTab] = useState<"edit" | "udf">("edit");
+  const [audit, setAudit] = useState<Buyer | null>(null);
   const [saving, setSaving] = useState(false);
   useEffect(() => {
-    apiGet<any[]>("/api/skus")
-      .then((data) =>
-        setCategories(
-          Array.from(
-            new Set(
-              data
-                .flatMap((row) => [row.category, row.subcategory])
-                .filter(Boolean),
-            ),
-          ).sort(),
-        ),
-      )
+    apiGet<any>("/api/merch-hierarchy")
+      .then((data) => setCategories((data.rows || []).map((row: any) => ({ code: row.code, name: row.name }))))
       .catch(() => setCategories([]));
   }, []);
-  const set = (key: keyof typeof emptyFilters, value: string) =>
+  const set = (key: keyof typeof emptyFilters, value: string | string[]) =>
     setFilters((current) => ({ ...current, [key]: value }));
-  const search = async (nextPage = 1, nextSize = size) => {
+  const search = async (nextPage = 1, nextSize = size, nextFilters = filters) => {
     setLoading(true);
     setNotice("");
     try {
-      const result = await apiSend<any>("/api/category-buyers", "POST", {
+      const result = await apiSend<any>("/api/categoryBuyerSearch", "POST", {
         _search: true,
         rows: nextSize,
         page: nextPage,
         sidx: "",
         sord: "asc",
-        ...filters,
+        buyerName: nextFilters.buyerName,
+        buyerDesc: nextFilters.buyerDesc,
+        phone: nextFilters.phone,
+        altPhone: nextFilters.altPhone,
+        email: nextFilters.email,
+        isActive: nextFilters.displayIsActive,
+        udf1: "",
+        udf2: "",
+        udf3: "",
+        udf4: "",
+        udf5: "",
+        linkToCat: nextFilters.linkToCategory.join("\u0017"),
         REQ_SEARCH_FLAG: true,
       });
-      setRows(result.gridModel);
+      setRows((result.gridModel || result.categoryBuyerDTOs || []).map(fromLiveRow));
       setPage(result.page);
       setTotal(result.total);
       setRecords(result.records);
@@ -103,42 +116,37 @@ export default function CategoryBuyers() {
       setLoading(false);
     }
   };
+  useEffect(() => {
+    void search(1, 20, emptyFilters);
+    // LIVE loads the first page when the enquiry opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const reset = () => {
     setFilters(emptyFilters);
-    setRows([]);
     setPage(1);
     setSize(20);
-    setRecords(0);
-    setTotal(0);
-    setSearched(false);
     setAdvanced(false);
     setNotice("");
+    void search(1, 20, emptyFilters);
   };
-  const edit = async (buyerCode?: string) => {
+  const edit = (row?: Buyer) => {
     setNotice("");
-    if (buyerCode) {
-      try {
-        setForm(
-          await apiGet<Buyer>(
-            `/api/category-buyers?buyerCode=${encodeURIComponent(buyerCode)}`,
-          ),
-        );
-      } catch (error: any) {
-        return setNotice(error.message);
-      }
-    } else setForm(blank());
+    setForm(row ? { ...blank(), ...row, udf: row.udf || ["", "", "", "", ""], categories: row.categories || [] } : blank());
+    setEditorTab("edit");
     setOpen(true);
   };
   const save = async () => {
-    if (!form.buyer_name.trim()) return setNotice("Buyer Name is required.");
     if (form.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email))
-      return setNotice("Enter a valid Email.");
+      return setNotice("Invalid Emai");
+    if (!form.buyer_name.trim()) return setNotice("Buyer Name is Mandatory");
+    if (!form.email.trim() || !form.phone.trim())
+      return setNotice("Please fill all the mandatory fields");
     setSaving(true);
     setNotice("");
     try {
       const saved = await apiSend<Buyer>(
-        "/api/category-buyers",
-        form.buyer_code ? "PUT" : "POST",
+        "/api/catBuyerSaveBS",
+        "POST",
         form,
       );
       setForm(saved);
@@ -152,23 +160,13 @@ export default function CategoryBuyers() {
   };
   const columns = [
     "Buyer Code",
-    "Buyer Name",
+    "Buyer Name*",
     "Buyer Description",
     "Phone",
-    "Alternate Phone",
     "Email",
     "Status",
-    "UDF1",
-    "UDF2",
-    "UDF3",
-    "UDF4",
-    "UDF5",
     "Location",
     "Created by",
-    "createdDate",
-    "updatedBy",
-    "updatedDate",
-    "Category",
     "Actions",
   ];
   return (
@@ -195,7 +193,7 @@ export default function CategoryBuyers() {
           Advanced Search
         </button>
         <button
-          onClick={() => void edit()}
+          onClick={() => edit()}
           className="rounded bg-[#2f9e9e] px-4 py-2 text-sm text-white"
         >
           <Plus size={14} className="mr-1 inline" />
@@ -272,67 +270,25 @@ export default function CategoryBuyers() {
         {advanced && (
           <>
             <label className="text-xs">
-              Buyer Code
+              Alternate Phone
               <input
-                id="gs_buyerCode"
+                id="altPhone1"
                 className="ci mt-1 w-full"
-                value={filters.buyerCode}
-                onChange={(e) => set("buyerCode", e.target.value)}
-              />
-            </label>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <label key={n} className="text-xs">
-                UDF{n}
-                <input
-                  id={`gs_udf${n}`}
-                  className="ci mt-1 w-full"
-                  value={(filters as any)[`udf${n}`]}
-                  onChange={(e) =>
-                    set(`udf${n}` as keyof typeof emptyFilters, e.target.value)
-                  }
-                />
-              </label>
-            ))}
-            <label className="text-xs">
-              Created Date
-              <input
-                id="gs_createDate"
-                type="date"
-                className="ci mt-1 w-full"
-                value={filters.createdDate}
-                onChange={(e) => set("createdDate", e.target.value)}
-              />
-            </label>
-            <label className="text-xs">
-              Updated By
-              <input
-                id="gs_modifiedBy"
-                className="ci mt-1 w-full"
-                value={filters.updatedBy}
-                onChange={(e) => set("updatedBy", e.target.value)}
-              />
-            </label>
-            <label className="text-xs">
-              Updated Date
-              <input
-                id="gs_modifiedDate"
-                type="date"
-                className="ci mt-1 w-full"
-                value={filters.updatedDate}
-                onChange={(e) => set("updatedDate", e.target.value)}
+                value={filters.altPhone}
+                onChange={(e) => set("altPhone", e.target.value)}
               />
             </label>
             <label className="text-xs">
               Category
               <select
-                id="gs_linkToCategory"
-                className="ci mt-1 w-full"
+                id="categorySelect2"
+                multiple
+                className="ci mt-1 h-28 w-full"
                 value={filters.linkToCategory}
-                onChange={(e) => set("linkToCategory", e.target.value)}
+                onChange={(e) => set("linkToCategory", Array.from(e.target.selectedOptions, (option) => option.value))}
               >
-                <option value="">--- Select ---</option>
                 {categories.map((item) => (
-                  <option key={item}>{item}</option>
+                  <option key={item.code} value={item.code}>{item.name}</option>
                 ))}
               </select>
             </label>
@@ -340,7 +296,7 @@ export default function CategoryBuyers() {
         )}
       </div>
       <div className="mt-2 overflow-auto border bg-white">
-        <table className="min-w-[1900px] w-full text-xs">
+        <table className="w-full text-xs">
           <thead className="bg-[#2f3b57] text-white">
             <tr>
               {columns.map((heading) => (
@@ -353,7 +309,7 @@ export default function CategoryBuyers() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={19} className="p-8 text-center">
+                <td colSpan={9} className="p-8 text-center">
                   Loading…
                 </td>
               </tr>
@@ -362,7 +318,7 @@ export default function CategoryBuyers() {
                 <tr key={row.buyer_code} className="border-t">
                   <td className="p-2">
                     <button
-                      onClick={() => void edit(row.buyer_code)}
+                      onClick={() => edit(row)}
                       className="text-sky-600"
                     >
                       {row.buyer_code}
@@ -371,31 +327,30 @@ export default function CategoryBuyers() {
                   <td>{row.buyer_name}</td>
                   <td>{row.description}</td>
                   <td>{row.phone}</td>
-                  <td>{row.alternate_phone}</td>
                   <td>{row.email}</td>
                   <td>{row.displayIsActive}</td>
-                  {row.udf.map((value, index) => (
-                    <td key={index}>{value}</td>
-                  ))}
                   <td>{row.location}</td>
                   <td>{row.created_by}</td>
-                  <td>{row.created_date}</td>
-                  <td>{row.updated_by}</td>
-                  <td>{row.updated_date}</td>
-                  <td>{row.linkToCategory}</td>
                   <td>
                     <button
                       aria-label={`Edit ${row.buyer_code}`}
-                      onClick={() => void edit(row.buyer_code)}
+                      onClick={() => edit(row)}
                     >
                       ✎
+                    </button>
+                    <button
+                      className="ml-2"
+                      aria-label={`Audit ${row.buyer_code}`}
+                      onClick={() => setAudit(row)}
+                    >
+                      ◷
                     </button>
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={19} className="p-8 text-center text-slate-400">
+                <td colSpan={9} className="p-8 text-center text-slate-400">
                   {searched
                     ? "No records to view"
                     : "Search to view Category Buyers"}
@@ -449,14 +404,18 @@ export default function CategoryBuyers() {
         onClose={() => setOpen(false)}
         wide
       >
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="mb-4 flex border-b">
+          <button className={`px-4 py-2 text-sm ${editorTab === "edit" ? "border-b-2 border-rose-500" : ""}`} onClick={() => setEditorTab("edit")}>Create/Edit</button>
+          <button className={`px-4 py-2 text-sm ${editorTab === "udf" ? "border-b-2 border-rose-500" : ""}`} onClick={() => setEditorTab("udf")}>User Defined Fields</button>
+        </div>
+        {editorTab === "edit" ? <div className="grid gap-3 md:grid-cols-2">
           <label className="text-xs">
             Buyer Code
             <input
               id="buyerCode"
-              readOnly
-              className="ci mt-1 w-full bg-slate-100"
+              className="ci mt-1 w-full"
               value={form.buyer_code}
+              onChange={(e) => setForm({ ...form, buyer_code: e.target.value })}
             />
           </label>
           <label className="text-xs">
@@ -480,7 +439,7 @@ export default function CategoryBuyers() {
             />
           </label>
           <label className="text-xs">
-            Email
+            Email*
             <input
               id="email"
               className="ci mt-1 w-full"
@@ -489,7 +448,7 @@ export default function CategoryBuyers() {
             />
           </label>
           <label className="text-xs">
-            Phone
+            Phone*
             <input
               id="phone"
               className="ci mt-1 w-full"
@@ -498,7 +457,7 @@ export default function CategoryBuyers() {
             />
           </label>
           <label className="text-xs">
-            Alternate PhNo
+            Alternate Phone
             <input
               id="altPhone"
               className="ci mt-1 w-full"
@@ -535,13 +494,14 @@ export default function CategoryBuyers() {
               }
             >
               {categories.map((item) => (
-                <option key={item}>{item}</option>
+                <option key={item.code} value={item.code}>{item.name}</option>
               ))}
             </select>
           </label>
+        </div> : <div className="grid gap-3 md:grid-cols-2">
           {form.udf.map((value, index) => (
             <label key={index} className="text-xs">
-              UDF{index + 1}
+              UDF {index + 1} :
               <input
                 id={`UDF${index + 1}`}
                 className="ci mt-1 w-full"
@@ -554,7 +514,7 @@ export default function CategoryBuyers() {
               />
             </label>
           ))}
-        </div>
+        </div>}
         <div className="mt-4 flex justify-end gap-2">
           <button
             id="saveButton"
@@ -571,6 +531,15 @@ export default function CategoryBuyers() {
             Close
           </button>
         </div>
+      </Modal>
+      <Modal title="Audit Details" open={Boolean(audit)} onClose={() => setAudit(null)}>
+        <dl className="grid grid-cols-2 gap-3 text-sm">
+          <dt>Created By</dt><dd>{audit?.created_by}</dd>
+          <dt>Created Date</dt><dd>{audit?.created_date}</dd>
+          <dt>Updated By</dt><dd>{audit?.updated_by}</dd>
+          <dt>Updated Date</dt><dd>{audit?.updated_date}</dd>
+        </dl>
+        <div className="mt-4 text-right"><button className="rounded border px-4 py-2" onClick={() => setAudit(null)}>Close</button></div>
       </Modal>
     </Shell>
   );

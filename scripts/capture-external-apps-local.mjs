@@ -1,0 +1,16 @@
+import { chromium } from 'playwright';
+const base = process.env.ERETAIL_BASE_URL || 'http://127.0.0.1:3011';
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+await page.goto(base, { waitUntil: 'domcontentloaded' });
+const captcha = (await page.locator('.font-mono').textContent()).trim();
+await page.getByPlaceholder('Username').fill('external-apps-compare');
+await page.getByPlaceholder('Password').fill('local');
+await page.getByPlaceholder('Enter captcha').fill(captcha);
+await page.getByRole('button', { name: 'Login' }).click();
+await page.waitForURL('**/app/dashboard');
+await page.goto(`${base}/app/m/external-apps`, { waitUntil: 'domcontentloaded' });
+await page.getByRole('button', { name: 'Search', exact: true }).click();
+await page.screenshot({ path: 'docs/live-exploration/external-apps-local.png', fullPage: true });
+console.log(JSON.stringify({ url: page.url(), body: (await page.locator('main').innerText()).replace(/\s+/g, ' ').slice(0, 4000) }));
+await browser.close();

@@ -132,11 +132,13 @@ export async function insert(collection, doc) {
     const db = await getDb();
     const id = await nextId(db, collection);
     const full = { id, ...doc };
+    if (full.id == null) full.id = id;
     await db.collection(collection).insertOne(full);
     return stripId(full);
   }
   const id = ++memSeq[collection];
   const full = { id, ...doc };
+  if (full.id == null) full.id = id;
   mem[collection].push(full);
   return { ...full };
 }

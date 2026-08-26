@@ -57,6 +57,9 @@ import merchHierarchy from "./api/merch-hierarchy.js";
 import manageAttributes from "./api/manage-attributes.js";
 import pricingEvents from "./api/pricing-events.js";
 import priceZones from "./api/price-zones.js";
+import externalApps from "./api/external-apps.js";
+import externalAppDefinitions from "./api/external-app-definitions.js";
+import externalAppConnections from "./api/external-app-connections.js";
 import orderRefunds from "./api/order-refunds.js";
 import omsRules from "./api/oms-rules.js";
 import masterOrders from "./api/master-orders.js";
@@ -93,6 +96,13 @@ import inboundGatePass from "./api/inbound-gate-pass.js";
 import inboundEnquiry from "./api/inbound-enquiry.js";
 import inboundCreateEdit from "./api/inbound-create-edit.js";
 import inboundRealtime from "./api/inbound-realtime.js";
+import inboundQc from "./api/inbound-qc.js";
+import inventoryMoveHistory from "./api/inventory-move-history.js";
+import inventoryMove from "./api/inventory-move.js";
+import inventoryMoveScan from "./api/inventory-move-scan.js";
+import cycleCount from "./api/cycle-count.js";
+import binAudit from "./api/bin-audit.js";
+import bulkLottables from "./api/bulk-lottables.js";
 import admin from "./api/admin.js";
 import tallyConfig from "./api/tally-config.js";
 import procurement from "./api/procurement.js";
@@ -107,6 +117,7 @@ const app = express();
 const PORT = process.env.PORT || 3002;
 
 app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Mount each serverless handler at its path. app.all forwards every method
 // (GET/POST/PUT/DELETE/OPTIONS) to the handler, mirroring Vercel behavior.
@@ -126,7 +137,13 @@ const routes = {
   "/api/manage-asn": manageAsn,
   "/api/vendor-promotions": vendorPromotions,
   "/api/purchase-charge-masters": purchaseChargeMasters,
+  "/api/chargeMasterSearch": purchaseChargeMasters,
+  "/api/jsonPOChargeDetailGrid": purchaseChargeMasters,
+  "/api/saveUpdatePOCharges": purchaseChargeMasters,
+  "/api/delUpdatePOCharges": purchaseChargeMasters,
   "/api/category-buyers": categoryBuyers,
+  "/api/categoryBuyerSearch": categoryBuyers,
+  "/api/catBuyerSaveBS": categoryBuyers,
   "/api/inventory": inventory,
   "/api/inventory-ops": inventoryOps,
   "/api/transfers": transfers,
@@ -163,6 +180,14 @@ const routes = {
   "/api/manage-attributes": manageAttributes,
   "/api/pricing-events": pricingEvents,
   "/api/price-zones": priceZones,
+  "/api/external-apps": externalApps,
+  "/api/external-app-definitions": externalAppDefinitions,
+  "/api/saveDefinition": externalAppDefinitions,
+  "/api/testSMSConnection": externalAppConnections,
+  "/api/jsonExternalAppsSearch": externalApps,
+  "/api/getRewardMasterDataForExtAppId": externalApps,
+  "/api/checkTaxIntConfigured": externalApps,
+  "/api/saveExternalAppsData": externalApps,
   "/api/order-refunds": orderRefunds,
   "/api/oms-rules": omsRules,
   "/api/master-orders": masterOrders,
@@ -199,10 +224,21 @@ const routes = {
   "/api/inbound-enquiry": inboundEnquiry,
   "/api/inbound-create-edit": inboundCreateEdit,
   "/api/inbound-realtime": inboundRealtime,
+  "/api/inbound-qc": inboundQc,
+  "/api/inventory-move-history": inventoryMoveHistory,
+  "/api/inventory-move": inventoryMove,
+  "/api/inventory-move-scan": inventoryMoveScan,
+  "/api/cycle-count": cycleCount,
+  "/api/bin-audit": binAudit,
+  "/api/bulk-lottables": bulkLottables,
   "/api/admin": admin,
   "/api/tally-config": tallyConfig,
   "/api/procurement": procurement,
   "/api/ars": ars,
+  "/api/fetchArsAttributes": ars,
+  "/api/addAndUpdateArsAttributes": ars,
+  "/api/bulkUpdateArsAttributes": ars,
+  "/api/downloadArsAttribute": ars,
   "/api/ajio": ajio,
   "/api/amazon-mfn": amazonMfn,
   "/api/vin-lister": vinLister,
