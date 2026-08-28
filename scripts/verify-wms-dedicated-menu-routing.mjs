@@ -12,6 +12,16 @@ const targets = [
   ["WMS", "Cycle Count", "/app/r/cycle-count"],
   ["WMS", "BIN Audit", "/app/r/bin-audit"],
   ["WMS", "Bulk update Lottables", "/app/r/bulk-lottables"],
+  ["WMS", "PutAway Enquiry", "/app/r/putaway-enquiry"],
+  ["WMS", "Dispatch Checkpoint Enquiry", "/app/r/dispatch-checkpoint"],
+  ["WMS", "Sku Grading", "/app/r/sku-grading"],
+  ["WMS", "Discrepancy Enquiry", "/app/r/discrepancy-enquiry"],
+  ["WMS", "Bulk Upload", "/app/r/bulk-upload"],
+  ["WMS", "MP Inventory Log", "/app/r/mr-inventory-log"],
+  ["WMS", "LPN Enquiry", "/app/r/lpn-enquiry"],
+  ["WMS", "Transhipment Old", "/app/r/transhipment-old"],
+  ["WMS", "Transhipment", "/app/r/transhipment"],
+  ["WMS", "QC Params Mapping", "/app/r/qc-params-mapping"],
   ["Master", "Location Create/Edit", "/app/m/location-create"],
 ];
 
@@ -50,7 +60,7 @@ try {
   if (errors.length)
     throw new Error(`Browser/API errors: ${errors.join(" | ")}`);
   console.log(
-    "PASS dedicated navigation: WMS inbound/inventory and Location Create/Edit bypass incorrect fallback routes.",
+    "PASS dedicated navigation: all mapped WMS workflows and Location Create/Edit bypass incorrect fallback routes.",
   );
 } finally {
   await browser.close();

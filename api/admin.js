@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       if (action === 'force-pull') {
         const { location, orders, addWhHo } = req.body;
         if (!location) return bad(res, 'Location is Mandatory');
-        const orderList = String(orders || '').split(',').map((s) => s.trim()).filter(Boolean);
+        const orderList = String(orders || '').toUpperCase().split(',').map((s) => s.trim()).filter(Boolean);
         if (!orderList.length) return bad(res, 'Order Number is Mandatory');
         if (orderList.length > 20) return bad(res, 'Max 20 order numbers are allowed');
         const record = await insert('admin_records', { type: PULLS, location, orders: orderList, addWhHo: !!addWhHo, status: 'Completed', createdAt: now() });

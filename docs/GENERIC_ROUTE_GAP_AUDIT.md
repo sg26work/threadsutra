@@ -23,6 +23,16 @@ to an older or generic route. Their navigation now targets the dedicated route:
 - BIN Audit
 - Bulk update Lottables
 - Location Create/Edit
+- PutAway Enquiry
+- Dispatch Checkpoint Enquiry
+- Sku Grading
+- Discrepancy Enquiry
+- Bulk Upload
+- MP Inventory Log
+- LPN Enquiry
+- Transhipment Old
+- Transhipment
+- QC Params Mapping
 
 `npm run test:wms-dedicated-menu-routing` clicks each flyout item in a real
 browser and asserts its final path. The dedicated workflow verifiers for all ten
@@ -37,21 +47,6 @@ generic CRUD behavior matches LIVE:
 
 - Manage Voucher Condition (`/app/m/voucher-condition`)
 - Sales Representative (`/app/m/sales-rep`)
-
-### WMS miscellaneous
-
-- PutAway Enquiry (`/app/m/putaway-enquiry`)
-- Dispatch Checkpoint Enquiry (`/app/m/dispatch-checkpoint`)
-- Sku Grading (`/app/m/sku-grading`)
-- Discrepancy Enquiry (`/app/m/discrepancy-enquiry`)
-- Bulk Upload (`/app/m/bulk-upload`)
-- MR Inventory Log (`/app/m/mr-inventory-log`)
-
-### Returns and transfers
-
-- Return OTC (Flipkart) (`/app/m/return-otc`)
-- Return OTC (Flipkart) New (`/app/m/return-otc-new`)
-- Return W/o Order (`/app/m/return-wo-order`)
 
 ### Admin logs
 

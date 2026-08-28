@@ -24,6 +24,15 @@ import categoryBuyers from "./api/category-buyers.js";
 import inventory from "./api/inventory.js";
 import inventoryOps from "./api/inventory-ops.js";
 import transfers from "./api/transfers.js";
+import stoEnquiry from "./api/sto-enquiry.js";
+import stoEditor from "./api/sto-editor.js";
+import userEnquiry from "./api/user-enquiry.js";
+import userEditor from "./api/user-editor.js";
+import roleEditor from "./api/role-editor.js";
+import orderImport from "./api/order-import.js";
+import commonImport from "./api/common-import.js";
+import exportsApi from "./api/exports.js";
+import settingsApi from "./api/settings.js";
 import returns from "./api/returns.js";
 import fulfillment from "./api/fulfillment.js";
 import picklists from "./api/picklists.js";
@@ -77,6 +86,23 @@ import lottableValidations from "./api/lottable-validations.js";
 import receiptValidations from "./api/receipt-validations.js";
 import skuLabelPrint from "./api/sku-label-print.js";
 import putawayRules from "./api/putaway-rules.js";
+import putawayEnquiry from "./api/putaway-enquiry.js";
+import dispatchCheckpoint from "./api/dispatch-checkpoint.js";
+import skuGrading from "./api/sku-grading.js";
+import discrepancyEnquiry from "./api/discrepancy-enquiry.js";
+import bulkUpload from "./api/bulk-upload.js";
+import mpInventoryLog from "./api/mp-inventory-log.js";
+import lpnEnquiry from "./api/lpn-enquiry.js";
+import transhipment from "./api/transhipment.js";
+import transhipmentOld from "./api/transhipment-old.js";
+import qcParamsMapping from "./api/qc-params-mapping.js";
+import rtvEnquiry from "./api/rtv-enquiry.js";
+import vendorReturnEditor from "./api/vendor-return-editor.js";
+import customerReturnEnquiry from "./api/customer-return-enquiry.js";
+import customerReturnEditor from "./api/customer-return-editor.js";
+import returnOtc from "./api/return-otc.js";
+import globalReturnsSearch from "./api/global-returns-search.js";
+import returnWithoutOrder from "./api/return-without-order.js";
 import allocationStrategies from "./api/allocation-strategies.js";
 import cycleCountWaves from "./api/cycle-count-waves.js";
 import manageAwb from "./api/manage-awb.js";
@@ -148,6 +174,15 @@ const routes = {
   "/api/inventory": inventory,
   "/api/inventory-ops": inventoryOps,
   "/api/transfers": transfers,
+  "/api/sto-enquiry": stoEnquiry,
+  "/api/sto-editor": stoEditor,
+  "/api/user-enquiry": userEnquiry,
+  "/api/user-editor": userEditor,
+  "/api/role-editor": roleEditor,
+  "/api/order-import": orderImport,
+  "/api/common-import": commonImport,
+  "/api/exports": exportsApi,
+  "/api/settings": settingsApi,
   "/api/returns": returns,
   "/api/fulfillment": fulfillment,
   "/api/picklists": picklists,
@@ -206,6 +241,23 @@ const routes = {
   "/api/receipt-validations": receiptValidations,
   "/api/sku-label-print": skuLabelPrint,
   "/api/putaway-rules": putawayRules,
+  "/api/putaway-enquiry": putawayEnquiry,
+  "/api/dispatch-checkpoint": dispatchCheckpoint,
+  "/api/sku-grading": skuGrading,
+  "/api/discrepancy-enquiry": discrepancyEnquiry,
+  "/api/bulk-upload": bulkUpload,
+  "/api/mp-inventory-log": mpInventoryLog,
+  "/api/lpn-enquiry": lpnEnquiry,
+  "/api/transhipment": transhipment,
+  "/api/transhipment-old": transhipmentOld,
+  "/api/qc-params-mapping": qcParamsMapping,
+  "/api/rtv-enquiry": rtvEnquiry,
+  "/api/vendor-return-editor": vendorReturnEditor,
+  "/api/customer-return-enquiry": customerReturnEnquiry,
+  "/api/customer-return-editor": customerReturnEditor,
+  "/api/return-otc": returnOtc,
+  "/api/global-returns-search": globalReturnsSearch,
+  "/api/return-without-order": returnWithoutOrder,
   "/api/allocation-strategies": allocationStrategies,
   "/api/cycle-count-waves": cycleCountWaves,
   "/api/manage-awb": manageAwb,

@@ -11,9 +11,17 @@ import GRN from "./pages/GRN";
 import Inventory from "./pages/Inventory";
 import InventoryOperations from "./pages/InventoryOperations";
 import Transfers from "./pages/Transfers";
+import StoEditor from "./eretail/transfers/StoEditor";
 import Skus from "./pages/Skus";
 import Partners from "./pages/Partners";
 import ReturnsModule from "./eretail/returns/ReturnsModule";
+import RtvEnquiry from "./eretail/returns/RtvEnquiry";
+import VendorReturnEditor from "./eretail/returns/VendorReturnEditor";
+import CustomerReturnEnquiry from "./eretail/returns/CustomerReturnEnquiry";
+import CustomerReturnEditor from "./eretail/returns/CustomerReturnEditor";
+import ReturnOtc from "./eretail/returns/ReturnOtc";
+import GlobalReturnsSearch from "./eretail/returns/GlobalReturnsSearch";
+import ReturnWithoutOrder from "./eretail/returns/ReturnWithoutOrder";
 import Reports from "./pages/Reports";
 
 // eRetail shell
@@ -73,6 +81,16 @@ import LottableValidation from "./eretail/wms/LottableValidation";
 import ReceiptValidation from "./eretail/wms/ReceiptValidation";
 import SkuLabelPrint from "./eretail/wms/SkuLabelPrint";
 import PutawayRules from "./eretail/wms/PutawayRules";
+import PutawayEnquiry from "./eretail/wms/PutawayEnquiry";
+import DispatchCheckpoint from "./eretail/wms/DispatchCheckpoint";
+import SkuGrading from "./eretail/wms/SkuGrading";
+import DiscrepancyEnquiry from "./eretail/wms/DiscrepancyEnquiry";
+import BulkUpload from "./eretail/wms/BulkUpload";
+import MpInventoryLog from "./eretail/wms/MpInventoryLog";
+import LpnEnquiry from "./eretail/wms/LpnEnquiry";
+import Transhipment from "./eretail/wms/Transhipment";
+import TranshipmentOld from "./eretail/wms/TranshipmentOld";
+import QcParamsMapping from "./eretail/wms/QcParamsMapping";
 import AllocationStrategies from "./eretail/wms/AllocationStrategies";
 import CycleCountWave from "./eretail/wms/CycleCountWave";
 import ManageAwb from "./eretail/wms/ManageAwb";
@@ -201,6 +219,16 @@ export default function App() {
             <Route path="/app/r/cycle-count" element={<P><CycleCount /></P>} />
             <Route path="/app/r/bin-audit" element={<P><BinAudit /></P>} />
             <Route path="/app/r/bulk-lottables" element={<P><BulkLottables /></P>} />
+            <Route path="/app/r/putaway-enquiry" element={<P><PutawayEnquiry /></P>} />
+            <Route path="/app/r/dispatch-checkpoint" element={<P><DispatchCheckpoint /></P>} />
+            <Route path="/app/r/sku-grading" element={<P><SkuGrading /></P>} />
+            <Route path="/app/r/discrepancy-enquiry" element={<P><DiscrepancyEnquiry /></P>} />
+            <Route path="/app/r/bulk-upload" element={<P><BulkUpload /></P>} />
+            <Route path="/app/r/mr-inventory-log" element={<P><MpInventoryLog /></P>} />
+            <Route path="/app/r/lpn-enquiry" element={<P><LpnEnquiry /></P>} />
+            <Route path="/app/r/transhipment" element={<P><Transhipment /></P>} />
+            <Route path="/app/r/transhipment-old" element={<P><TranshipmentOld /></P>} />
+            <Route path="/app/r/qc-params-mapping" element={<P><QcParamsMapping /></P>} />
             <Route
               path="/app/r/:key"
               element={
@@ -404,6 +432,10 @@ export default function App() {
             <Route path="/app/m/store-group" element={<P><StoreGroup /></P>} />
             <Route path="/app/m/sku-group" element={<P><SkuGroup /></P>} />
             <Route path="/app/m/order-refund" element={<P><OrderRefund /></P>} />
+            <Route path="/app/m/return-otc" element={<P><ReturnOtc /></P>} />
+            <Route path="/app/m/return-otc-new" element={<P><ReturnOtc modern /></P>} />
+            <Route path="/app/returns/global-search" element={<P><GlobalReturnsSearch /></P>} />
+            <Route path="/app/m/return-wo-order" element={<P><ReturnWithoutOrder /></P>} />
             <Route path="/app/m/oms-rules" element={<P><OmsRules /></P>} />
             <Route path="/app/master-order-enquiry" element={<P><MasterOrderEnquiry /></P>} />
             <Route path="/app/order-enquiry" element={<P><OrderEnquiry /></P>} />
@@ -448,6 +480,8 @@ export default function App() {
                 </P>
               }
             />
+            <Route path="/app/transfers/create" element={<P><StoEditor /></P>} />
+            <Route path="/app/transfers/edit" element={<P><StoEditor /></P>} />
             <Route
               path="/app/skus"
               element={
@@ -483,6 +517,22 @@ export default function App() {
                   <ReturnsModule />
                 </P>
               }
+            />
+            <Route
+              path="/app/returns/rtv-enquiry"
+              element={<P><RtvEnquiry /></P>}
+            />
+            <Route
+              path="/app/returns/vendor-return"
+              element={<P><VendorReturnEditor /></P>}
+            />
+            <Route
+              path="/app/returns/customer-enquiry"
+              element={<P><CustomerReturnEnquiry /></P>}
+            />
+            <Route
+              path="/app/returns/customer-return"
+              element={<P><CustomerReturnEditor /></P>}
             />
             <Route
               path="/app/returns/:screen"
