@@ -1,38 +1,45 @@
 import { useState, useEffect, ReactNode } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { ChevronRight, X, LogOut, User, Search, Maximize2, Flag, Star, ChevronDown, Download, FileText } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, X, LogOut, User, Search, Maximize2, Flag, Download, MapPin, Asterisk } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { RAIL, RailEntry } from './menuData';
-import { apiGet } from '../lib/api';
-import { DOWNLOADS_EVENT } from '../context/DownloadContext';
+import { apiSend } from '../lib/api';
+import { useScreenFrame, useScreens } from './ScreenContext';
 
 function Flyout({ entry, onNav }: { entry: RailEntry; onNav: () => void }) {
   const nav = useNavigate();
   const go = (to?: string) => { if (to) { nav(to); onNav(); } };
+  const columnCount = entry.columns!.length;
+  const rowCount = Math.max(...entry.columns!.map((column) => column.groups.length));
+  const groups = Array.from({ length: rowCount }, (_, row) =>
+    entry.columns!.map((column, columnIndex) => column.groups[row] ? ({ group: column.groups[row], columnIndex, row }) : null).filter(Boolean),
+  ).flat() as { group: NonNullable<RailEntry['columns']>[number]['groups'][number]; columnIndex: number; row: number }[];
+  const measuredHeights: Record<string, Record<string, number>> = {
+    wms: { Setup: 171, 'Order Processing': 171, Inventory: 171, Inbound: 140, Miscellaneous: 140 },
+    admin: { Miscellaneous: 130, Logs: 170 },
+    reports: { 'Sales & Return': 171, Miscellaneous: 120 },
+    returns: { Transfers: 80 },
+  };
   return (
-    <div className="absolute left-full top-0 z-50 flex max-h-[calc(100vh-64px)] min-w-[720px] max-w-[1040px] flex-col overflow-hidden rounded-r-md bg-[#26313f] text-slate-200 shadow-2xl">
-      <div className="border-b border-white/10 px-6 py-3 text-lg font-semibold text-white">{entry.title}</div>
-      <div className="flex gap-2 overflow-y-auto p-5">
-        {entry.columns!.map((col, ci) => (
-          <div key={ci} className="min-w-[220px] flex-1">
-            {col.groups.map((g, gi) => (
-              <div key={gi} className="mb-4">
-                <div className="mb-1 border-b border-white/10 pb-1.5 text-sm font-semibold text-slate-300">{g.title}</div>
-                <ul className="py-1">
-                  {g.items.map((it) => (
-                    <li key={it.label}>
-                      <button
-                        onClick={() => go(it.to)}
-                        className="flex w-full items-center gap-2 px-1 py-1.5 text-left text-[15px] text-slate-200 transition hover:text-[#5ec6d9]"
-                      >
-                        <ChevronRight size={15} className="text-[#3fb6c9]" />
-                        {it.label}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+    <div data-menu-flyout className="absolute left-full top-0 z-50 w-[630px] overflow-visible text-slate-200">
+      <div className="flex h-[40px] items-center bg-[#26313f] px-[15px] text-[16px] font-semibold text-white">{entry.title}</div>
+      <div data-menu-flyout-body className="grid h-[419px] w-[630px] auto-rows-max grid-cols-[repeat(3,200px)] content-start items-start gap-[6px] bg-[#26313f] p-[5px]">
+        {groups.map(({ group: g, columnIndex, row }, index) => (
+          <div key={`${g.title}-${index}`} data-menu-group={g.title} style={{ gridColumn: columnIndex + 1, gridRow: row + 1, height: measuredHeights[entry.key]?.[g.title], transform: entry.key === 'procurement' && g.title === 'ARS' ? 'translateY(-20px)' : undefined }} className={`w-[200px] self-start overflow-x-hidden ${g.title === 'SKU Management' ? 'max-h-[171px] overflow-y-auto' : 'overflow-y-visible'}`}>
+            {g.title && <div className="border-b border-white/10 px-[5px] py-[3px] text-[13px] font-semibold text-slate-300">{g.title}</div>}
+            <ul className="py-[2px]">
+              {g.items.map((it) => (
+                <li key={it.label}>
+                  <button
+                    onClick={() => go(it.to)}
+                    className="flex h-[20px] w-full items-center gap-[4px] px-[5px] text-left text-[12px] text-slate-200 hover:text-[#5ec6d9]"
+                  >
+                    <ChevronRight size={11} className="shrink-0 text-[#3fb6c9]" />
+                    {it.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
         ))}
       </div>
@@ -50,138 +57,208 @@ export default function Shell({
 }) {
   const { user, logout } = useAuth();
   const nav = useNavigate();
+  const location = useLocation();
+  const screenFrame = useScreenFrame();
+  const { screens, history, showFeedback, openScreen, activateScreen: recordActivation, goBack, closeScreen, orderType, setOrderType } = useScreens();
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [userMenu, setUserMenu] = useState(false);
-  const [orderType, setOrderType] = useState('Web Order');
-  const [orderMenu, setOrderMenu] = useState(false);
   const [search, setSearch] = useState('');
-  const [fav, setFav] = useState(false);
-  const [dlMenu, setDlMenu] = useState(false);
-  const [downloads, setDownloads] = useState<any[]>([]);
+  const [screenMenu, setScreenMenu] = useState(false);
+  const [locationOpen, setLocationOpen] = useState(false);
+  const [language, setLanguage] = useState('English');
+  const [timeZone, setTimeZone] = useState('Asia/Calcutta');
+  const [defaultLocation, setDefaultLocation] = useState('remainSame');
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [speedOpen, setSpeedOpen] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
+  const [passwords, setPasswords] = useState({ old: '', next: '', confirm: '' });
+  const [passwordError, setPasswordError] = useState('');
 
-  const loadDownloads = () => apiGet('/api/downloads').then((d) => setDownloads(Array.isArray(d) ? d : [])).catch(() => {});
+  const requestedScreens = openScreens && openScreens.length ? openScreens : [{ label: breadcrumb.split('>').pop()!.trim(), to: '#' }];
+  const currentLabel = requestedScreens[requestedScreens.length - 1].label;
+  const effectivePath = screenFrame?.path || `${location.pathname}${location.search}`;
+
   useEffect(() => {
-    loadDownloads();
-    const handler = () => loadDownloads();
-    window.addEventListener(DOWNLOADS_EVENT, handler);
-    return () => window.removeEventListener(DOWNLOADS_EVENT, handler);
-  }, []);
+    if (screenFrame && screenFrame.key === currentLabel) return;
+    const result = openScreen({ label: currentLabel, path: effectivePath });
+    if (result === 'limit') showFeedback('Maximum limit of opened Tabs exceeded.', 'err');
+  }, [currentLabel, effectivePath, openScreen, screenFrame, showFeedback]);
 
-  const reDownload = (r: any) => {
-    if (r.status === 'Processing' || !r.content) return;
-    const blob = new Blob([r.content], { type: r.mime || 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = r.filename; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const activateScreen = (label: string) => {
+    const screen = recordActivation(label);
+    if (screen) nav(screen.path);
+  };
+  const backScreen = () => {
+    const screen = goBack();
+    if (screen) nav(screen.path);
+  };
+  const dismissScreen = (label: string) => {
+    if (label === currentLabel) {
+      const closingIndex = screens.findIndex((screen) => screen.label === label);
+      const target = screens[closingIndex - 1] || screens[closingIndex + 1];
+      if (target) nav(target.path);
+    }
+    closeScreen(label);
   };
 
-  const screens = openScreens && openScreens.length ? openScreens : [{ label: breadcrumb.split('>').pop()!.trim(), to: '#' }];
-
-  const doSearch = () => {
+  const doSearch = async () => {
     if (!search.trim()) return;
-    nav(`/app/sale-orders?q=${encodeURIComponent(search.trim())}`);
-    setSearch('');
+    try {
+      const result: any = await apiSend('/api/jsonOrderExits', 'POST', { orderno: search.trim(), searchType: orderType });
+      if (result.jsonMessage) return showFeedback('Error while searching for an order', 'err');
+      if (!result.orderMap) {
+        const errors: Record<string, string> = {
+          '1': 'Order no or Web Order no does not exists in system.',
+          '2': 'AWB no does not exists in system.',
+          '3': 'Sub Order Id does not exists in system.',
+          '4': 'PO Code does not exists in system',
+          '5': 'LPN No does not exists in system.',
+          '6': 'Reverse Awb No does not exists in system.',
+          '7': 'Invoice Number does not exist in system',
+        };
+        return showFeedback(errors[orderType] || 'Order does not exist in system.', 'err');
+      }
+      const entries = Object.entries(result.orderMap) as [string, string][];
+      const [key, value] = entries[0];
+      if (key === 'PO') nav(`/app/procurement/po/single?poCode=${encodeURIComponent(value)}`);
+      else if (key.startsWith('SP_')) nav(`/app/market-order-view?orderNo=${encodeURIComponent(value)}`);
+      else if (key.includes('_STO')) nav(`/app/transfers/edit?stoNo=${encodeURIComponent(value)}`);
+      else if (key.includes('_RTV')) nav(`/app/returns/vendor-return?id=${encodeURIComponent(value)}`);
+      else if (key.includes('_KIT')) nav(`/app/m/kitting-order?orderCode=${encodeURIComponent(value)}`);
+      else nav(`/app/order-maintenance?orderCode=${encodeURIComponent(value)}`);
+      setSearch('');
+    } catch {
+      showFeedback('Error while searching for an order', 'err');
+    }
   };
+
+  const searchOptions = [
+    ['1', 'Web Order No', 'Enter Web Order No'], ['2', 'AWB No', 'Enter SKU Code'],
+    ['3', 'Sub Order No', 'Enter AWB Number'], ['4', 'PO No', 'Enter Invoice Number'],
+    ['5', 'LPN No', 'Enter LPN No'], ['6', 'Reverse AWB No', 'Enter RVAWB No'],
+    ['7', 'Invoice No', 'Enter Invoice No'],
+  ];
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
     else document.exitFullscreen?.().catch(() => {});
   };
 
+  const passwordStrength = (() => {
+    const value = passwords.next;
+    if (!value) return 0;
+    let strength = 2;
+    if (value.length >= 8) strength += 1;
+    if (/[a-zA-Z]/.test(value)) strength += 1;
+    if (/[0-9]/.test(value)) strength += 1;
+    if (/[!@#$%^&*(),.?\":{}|<>]/.test(value)) strength += 1;
+    strength += 1;
+    return strength;
+  })();
+  const savePassword = () => {
+    if (!passwords.old) return setPasswordError('Please Enter old password');
+    if (!passwords.next) return setPasswordError('Please Enter new password');
+    if (!passwords.confirm) return setPasswordError('Please Enter confirm password');
+    if (user?.username && passwords.next.toLowerCase().includes(user.username.toLowerCase())) return setPasswordError('Password must not contain your username.');
+    if (['012','123','234','345','456','567','678','789','987','876','765','654','543','432','321','210'].some((sequence) => passwords.next.includes(sequence))) return setPasswordError('Password cannot include numeric sequences.');
+    if (passwords.next.length < 8) return setPasswordError('Password must be 8 character long.');
+    if (!/[a-zA-Z]/.test(passwords.next)) return setPasswordError('Password must contain alphabets.');
+    if (!/[0-9]/.test(passwords.next)) return setPasswordError('Password must contain numeric digit.');
+    if (!/[!@#$%^&*(),.?\":{}|<>]/.test(passwords.next)) return setPasswordError('Password must contain special character.');
+    if (passwords.confirm !== passwords.next) return setPasswordError('Please Enter same new password and confirm password');
+    setPasswordError('Password change requires an authenticated server session.');
+  };
+
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#eef1f3] font-sans" onClick={() => { setOpenKey(null); setUserMenu(false); }}>
+    <div className="relative flex h-screen overflow-hidden flex-col bg-[#eef1f3] font-sans" onClick={() => { setOpenKey(null); setUserMenu(false); setScreenMenu(false); }}>
       {/* Top header — medium blue */}
-      <header className="relative z-40 flex h-[64px] items-center bg-[#3b8fc4] pr-4 text-white">
-        <div className="flex h-full w-[64px] items-center justify-center bg-white">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#d62828]">
-            <span className="text-2xl font-black italic text-white">e</span>
+      <header className="relative z-40 flex h-[51px] shrink-0 items-start bg-[#3b8fc4] text-white">
+        <div className="flex h-[50px] w-[50px] items-center justify-center bg-white">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#d62828]">
+            <span className="text-xl font-black italic text-white">e</span>
           </div>
         </div>
-        {/* Open screen pill */}
-        <button onClick={() => nav('/app/dashboard')} className="ml-3 flex items-center gap-1 rounded bg-[#8e2fb0] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#7d2999]">
-          {screens[0].label}
-          <span className="ml-1 rounded-full p-0.5 hover:bg-white/20"><X size={13} /></span>
-        </button>
-        <div className="ml-auto flex items-center gap-4">
-          <div className="flex items-center gap-2 rounded bg-white/15 px-3 py-1.5">
-            <div className="relative" onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setOrderMenu((v) => !v)} className="flex items-center gap-1 text-sm font-medium">{orderType} <ChevronDown size={14} /></button>
-              {orderMenu && (
-                <div className="absolute left-0 top-8 z-50 w-40 rounded-md border border-slate-200 bg-white py-1 text-slate-700 shadow-lg">
-                  {['Web Order', 'Store Order', 'B2B Order', 'Exchange Order'].map((t) => (
-                    <button key={t} onClick={() => { setOrderType(t); setOrderMenu(false); }} className={`block w-full px-3 py-1.5 text-left text-sm hover:bg-slate-50 ${t === orderType ? 'font-semibold text-[#2f9e9e]' : ''}`}>{t}</button>
-                  ))}
-                </div>
-              )}
+        {history.length > 1 && <button aria-label="Back" title="Back" data-history-depth={history.length} onClick={backScreen} className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded bg-white/15 hover:bg-white/25"><ChevronLeft size={18} /></button>}
+        {/* LIVE multi-screen strip: secondary screens stay ordered and switchable. */}
+        <div className="ml-3 flex max-w-[42vw] items-center gap-1 overflow-x-auto">
+          {screens.filter((screen) => screen.closable).map((screen) => (
+            <div key={screen.label} className={`flex shrink-0 items-center rounded px-2 py-1.5 text-sm font-medium ${screen.label === currentLabel ? 'bg-[#8e2fb0] text-white' : 'bg-white/15 text-white/85 hover:bg-white/25'}`}>
+              <button onClick={() => activateScreen(screen.label)}>{screen.label}</button>
+              <button aria-label={`Close ${screen.label}`} onClick={() => dismissScreen(screen.label)} className="ml-1 rounded-full p-0.5 hover:bg-white/20"><X size={13} /></button>
             </div>
-            <div className="flex items-center rounded bg-white px-2" onClick={(e) => e.stopPropagation()}>
-              <input value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && doSearch()} placeholder="Search order no…" className="w-36 bg-transparent py-1 text-sm text-slate-700 outline-none" />
-              <button onClick={doSearch}><Search size={15} className="text-slate-500 hover:text-[#2f9e9e]" /></button>
-            </div>
-          </div>
-          <button onClick={(e) => { e.stopPropagation(); setFav((v) => !v); }} title="Add to favorites">
-            <Star size={18} className={fav ? 'fill-yellow-300 text-yellow-300' : 'text-white/80'} />
-          </button>
-          <button onClick={(e) => { e.stopPropagation(); nav('/app/fulfillment/order-processing'); }} className="relative" title="Pending tasks">
-            <Flag size={18} className="text-white/90" /><span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold">1</span>
-          </button>
-          <div className="relative" onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => { setDlMenu((v) => !v); if (!dlMenu) loadDownloads(); }} title="Downloads" className="relative">
-              <Download size={18} className="text-white/80 hover:text-white" />
-              {downloads.length > 0 && <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-500 px-1 text-[9px] font-bold">{downloads.length}</span>}
-            </button>
-            {dlMenu && (
-              <div className="absolute right-0 top-9 z-50 w-80 rounded-md border border-slate-200 bg-white text-slate-700 shadow-xl">
-                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2.5">
-                  <span className="text-sm font-semibold text-slate-700">Downloads</span>
-                  <button onClick={() => { setDlMenu(false); nav('/app/downloads'); }} className="text-xs font-medium text-[#2f7fb6] hover:underline">View all</button>
-                </div>
-                <div className="max-h-80 overflow-y-auto">
-                  {downloads.length === 0 ? (
-                    <p className="px-4 py-8 text-center text-sm text-slate-400">No exports yet</p>
-                  ) : downloads.slice(0, 8).map((r) => (
-                    <div key={r.id} className="flex items-center gap-2 border-b border-slate-50 px-3 py-2 hover:bg-slate-50">
-                      <FileText size={15} className="shrink-0 text-slate-400" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-medium text-slate-700">{r.filename}</p>
-                        <p className="text-[10px] text-slate-400">{r.format} · {r.exported_by || 'system'} · {new Date(r.created_at).toLocaleString()}</p>
-                      </div>
-                      <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${r.status === 'Completed' ? 'bg-emerald-50 text-emerald-700' : r.status === 'Processing' ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'}`}>{r.status || 'Completed'}</span>
-                      <button onClick={() => reDownload(r)} disabled={r.status === 'Processing' || !r.content} className="shrink-0 rounded p-1 text-emerald-600 hover:bg-emerald-50 disabled:opacity-30" title="Re-download"><Download size={13} /></button>
-                    </div>
-                  ))}
-                </div>
+          ))}
+        </div>
+        <div className="ml-auto flex h-[50px] items-start">
+          <div className="mr-[3px] w-[210px] text-right text-white">
+            <div className="flex h-[22px] items-center justify-end gap-1 text-[12px]"><MapPin size={12} className="text-[#aaeeff]" />JX Karawaci</div>
+            <div className="flex h-[24px]" onClick={(e) => e.stopPropagation()}>
+              <select id="searchType" aria-label="Search Type" value={orderType} onChange={(e) => { setOrderType(e.target.value); setSearch(''); }} className="h-[24px] w-[105px] rounded-l-[9px] border-0 bg-[#23709c] px-[1px] text-[12px] text-white outline-none">
+                {searchOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+              <div className="relative h-[24px] w-[105px]">
+                <input id="searchValue" aria-label="Global Search" maxLength={150} value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && void doSearch()} placeholder={searchOptions.find(([value]) => value === orderType)?.[2]} className="block h-[24px] w-[105px] rounded-r-[9px] border-0 bg-white pl-1 pr-[20px] text-[12px] leading-[24px] text-[#555] outline-none" />
+                <button aria-label="Search" onClick={() => void doSearch()} className="absolute right-[4px] top-[5px]"><Search size={14} className="text-slate-500" /></button>
               </div>
-            )}
+            </div>
           </div>
-          <button onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }} title="Toggle fullscreen"><Maximize2 size={17} className="text-white/80 hover:text-white" /></button>
-          <div className="relative">
-            <button onClick={(e) => { e.stopPropagation(); setUserMenu((v) => !v); }} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20"><User size={18} /></button>
+          <button onClick={(e) => { e.stopPropagation(); setLocationOpen(true); }} className="flex h-[50px] w-[42px] items-center justify-center" title="Switch Location"><Asterisk size={16} /></button>
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <button data-screen-count={screens.length} onClick={() => setScreenMenu((value) => !value)} className="relative flex h-[50px] w-[42px] items-center justify-center" title="Open Screen(s)">
+              <Flag size={18} className="text-white/90" /><span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold">{screens.length}</span>
+            </button>
+            {screenMenu && <div className="absolute right-0 top-9 z-50 w-[280px] border border-slate-200 bg-white text-slate-700 shadow-xl">
+              <div className="border-b px-3 py-2 text-center text-sm">You have {screens.length} Open Screen(s)</div>
+              <div className="max-h-[200px] overflow-y-auto">
+                {screens.map((screen) => <div key={screen.label} className="flex items-center border-b px-3 py-2 text-sm">
+                  <button className="min-w-0 flex-1 truncate text-left" onClick={() => { activateScreen(screen.label); setScreenMenu(false); }}>{screen.label}</button>
+                  {screen.closable && <button aria-label={`Close ${screen.label}`} onClick={() => dismissScreen(screen.label)}><X size={14} /></button>}
+                </div>)}
+              </div>
+              <button className="w-full px-3 py-2 text-center text-xs" onClick={() => setScreenMenu(false)}>Close</button>
+            </div>}
+          </div>
+          <button onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }} title="Toggle Full-Screen" className="flex h-[50px] w-[42px] items-center justify-center"><Maximize2 size={17} /></button>
+          <button onClick={(e) => { e.stopPropagation(); nav('/app/downloads'); }} title="Export Report Status" className="flex h-[50px] w-[42px] items-center justify-center"><Download size={18} /></button>
+          <div className="relative flex h-[50px] w-[65px] items-center justify-center">
+            <button onClick={(e) => { e.stopPropagation(); setUserMenu((v) => !v); }} className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-white/20"><User size={18} /></button>
             {userMenu && (
-              <div className="absolute right-0 top-10 z-50 w-52 rounded-md border border-slate-200 bg-white py-1 text-slate-700 shadow-lg" onClick={(e) => e.stopPropagation()}>
-                <div className="border-b border-slate-100 px-4 py-2 text-xs"><div className="font-semibold">{user?.username}</div><div className="text-slate-400">Store Admin</div></div>
-                <button onClick={() => { logout(); nav('/'); }} className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50"><LogOut size={14} /> Sign Out</button>
+              <div className="absolute right-0 top-[50px] z-50 w-[280px] bg-white text-slate-700 shadow-lg" onClick={(e) => e.stopPropagation()}>
+                <div className="h-[231px] bg-[#3c8dbc] px-[30px] py-[10px] text-center text-white">
+                  <p className="text-sm">{user?.username}</p>
+                  <p className="text-[11px]">You last visited on <b>{new Date().toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}</b></p>
+                  <div className="mx-auto mt-1 flex h-[45px] w-[45px] items-center justify-center rounded-full bg-white/20"><User size={25} /></div>
+                  <p className="mt-1 text-left text-sm">Contact Helpdesk</p>
+                  <a href="mailto:vineretail.helpdesk@vinculumgroup.com" className="mt-1 block text-left text-[12px] text-white">vineretail.helpdesk@vinculumgroup.com</a>
+                  <p className="text-left text-[12px]">+91 7838 130 820</p>
+                  <button onClick={() => { setUserMenu(false); setSpeedOpen(true); }} className="mt-[10px] h-[33px] bg-[#00c0ef] px-3 text-[13px]">Test My Internet Speed</button>
+                </div>
+                <div className="flex h-[45px] items-center gap-[4px] px-[11px]">
+                  <button onClick={() => { setUserMenu(false); nav('/app/profile'); }} className="h-[34px] border bg-white px-[12px] text-sm">Profile</button>
+                  <button title="Change Password" onClick={() => { setUserMenu(false); setPasswords({ old: '', next: '', confirm: '' }); setPasswordError(''); setPasswordOpen(true); }} className="h-[34px] w-[40px] border bg-white">⌘</button>
+                  <button title="User Activity Log" onClick={() => { setUserMenu(false); setActivityOpen(true); }} className="h-[34px] w-[40px] border bg-white">▦</button>
+                  <button onClick={() => { logout(); nav('/'); }} className="ml-auto flex h-[34px] items-center gap-1 border bg-white px-[12px] text-sm"><LogOut size={14} /> Sign out</button>
+                </div>
               </div>
             )}
           </div>
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="ml-[50px] flex min-h-0 flex-1">
         {/* Icon rail with flyouts */}
-        <div className="relative z-30 flex w-[64px] flex-col bg-[#1b232f] py-1" onClick={(e) => e.stopPropagation()}>
+        <div data-sidebar-rail className="absolute inset-y-0 left-0 z-30 flex w-[50px] flex-col bg-[#1b232f] pt-[51px]" onClick={(e) => e.stopPropagation()}>
           {RAIL.map((entry) => {
             const on = active === entry.key;
             const opened = openKey === entry.key;
             return (
-              <div key={entry.key} className="relative"
-                onMouseEnter={() => !entry.single && setOpenKey(entry.key)}
+              <div key={entry.key} className="relative h-[43.140625px]"
+                onMouseEnter={() => entry.columns && setOpenKey(entry.key)}
                 onMouseLeave={() => setOpenKey((k) => (k === entry.key ? null : k))}>
                 <button
-                  onClick={() => entry.single ? nav(entry.single) : setOpenKey(opened ? null : entry.key)}
+                  onClick={() => { if (entry.single) nav(entry.single); }}
                   title={entry.title}
-                  className={`flex h-[52px] w-[64px] items-center justify-center border-l-[3px] transition ${on ? 'border-[#3fb6c9] bg-[#26313f] text-white' : 'border-transparent text-slate-400 hover:bg-white/5 hover:text-white'}`}>
-                  <entry.icon size={22} />
+                  className={`flex h-[42px] w-[50px] items-center justify-center border-l-[3px] transition ${on ? 'border-[#3fb6c9] bg-[#26313f] text-white' : 'border-transparent text-slate-400 hover:bg-white/5 hover:text-white'}`}>
+                  <entry.icon size={20} />
                 </button>
                 {opened && entry.columns && <Flyout entry={entry} onNav={() => setOpenKey(null)} />}
               </div>
@@ -189,34 +266,56 @@ export default function Shell({
           })}
         </div>
 
-        <div className="flex flex-1 flex-col overflow-hidden">
-          {/* Open screens bar */}
-          <div className="flex items-center gap-2 border-b border-slate-200 bg-[#f4f6f8] px-3 py-1.5 text-sm">
-            <span className="text-xs text-slate-500">You have {screens.length} Open Screen(s)</span>
-            {screens.map((s) => (
-              <span key={s.to} className="flex items-center gap-1 rounded border border-rose-300 bg-rose-50 px-2 py-0.5 text-slate-700">
-                {s.to === '#' ? s.label : <Link to={s.to}>{s.label}</Link>}
-                <Link to="/app/dashboard"><X size={12} className="text-slate-400 hover:text-rose-500" /></Link>
-              </span>
-            ))}
-          </div>
-
-          {/* Breadcrumb bar */}
-          <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-2">
-            <span className="text-sm font-medium text-slate-500">{breadcrumb}</span>
-            <div className="flex items-center gap-2">
-              <select className="rounded border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-600 outline-none">
-                <option>-----All-----</option><option>Delhi NCR</option><option>Mumbai WH</option><option>Bengaluru WH</option><option>Kolkata WH</option>
-              </select>
-              <button onClick={() => nav(0)} className="flex h-8 w-9 items-center justify-center rounded bg-[#f5a623] text-white hover:bg-[#e0961a]">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
-              </button>
-            </div>
-          </div>
-
-          <main className="flex-1 overflow-y-auto p-4">{children}</main>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {/* The LIVE module runs inside an iframe: fixed dialogs are bounded by the module viewport and cannot cover shell navigation. */}
+          <main className="relative min-h-0 flex-1 overflow-y-auto p-4" style={{ transform: 'translateZ(0)' }}>{children}</main>
         </div>
       </div>
+      <footer className="ml-[50px] flex h-[19px] shrink-0 items-center bg-white px-[15px] text-[11px] text-[#444]">
+        <strong>Copyright © 2012&nbsp; <a className="text-[#3c8dbc]" href="http://www.vinculumgroup.com" target="_blank" rel="noreferrer">Vinculum Solutions Pvt Ltd</a>.</strong>
+        <span className="ml-auto"><b>Version </b>9.3.188&nbsp;&nbsp; All rights reserved.&nbsp;</span>
+      </footer>
+      {locationOpen && <div role="dialog" aria-label="User Preferences" className="fixed inset-0 z-[1050] bg-black/50" onClick={(event) => event.target === event.currentTarget && setLocationOpen(false)}>
+        <div className="mx-auto mt-[20px] h-[342px] w-[600px] bg-white p-[20px] text-[12px] text-[#333] shadow-xl">
+          <h2 className="mb-[10px] text-[15px] font-semibold">User Preferences</h2>
+          <div className="grid grid-cols-[145px_1fr] items-center gap-y-[3px]">
+            <label htmlFor="companyDetail">Company</label><select id="companyDetail" defaultValue="USPL" className="h-[34px] border px-2"><option value="">Please select a Company</option><option value="USPL">Vinculum Solutions Pvt Ltd.</option></select>
+            <label htmlFor="locationDetail">Location</label><select id="locationDetail" defaultValue="UWH" className="h-[34px] border px-2"><option value="">Please select a Location</option><option value="UWH">UWH-JX Karawaci</option></select>
+            <label htmlFor="languageDetail">Language</label><select id="languageDetail" value={language} onChange={(event) => setLanguage(event.target.value)} className="h-[34px] border px-2"><option>Please select a Language</option>{['English','Thai/ไทย','Bahasa','Simple Chinese/简单的中文','Vietnamese/Tiếng Việt','Hindi/हिंदी','Arabic (Saudi Arabia)'].map((value) => <option key={value}>{value}</option>)}</select>
+            <label htmlFor="timeZoneDetail">Timezone</label><select id="timeZoneDetail" value={timeZone} onChange={(event) => setTimeZone(event.target.value)} className="h-[34px] border px-2"><option>Please select a Timezone</option>{['Etc/GMT+12','Pacific/Midway','America/Los_Angeles','America/Chicago','America/New_York','Etc/GMT','Europe/London','Europe/Paris','Asia/Dubai','Asia/Karachi','Asia/Calcutta','Asia/Kolkata','Asia/Bangkok','Asia/Singapore','Asia/Tokyo','Australia/Sydney','Pacific/Auckland'].map((value) => <option key={value} value={value}>{value === 'Asia/Calcutta' ? '(GMT+5:30) Asia/Calcutta' : value}</option>)}</select>
+          </div>
+          <div className="mt-[12px] flex gap-[28px] text-[12px]">{[['setDefault','Set As Default'],['removeDefault','Remove Default'],['remainSame','Do Nothing']].map(([value,label]) => <label key={value} className="flex items-center gap-1"><input type="radio" name="setDefault" value={value} checked={defaultLocation === value} onChange={() => setDefaultLocation(value)} />{label}</label>)}</div>
+          <div className="mt-[16px] ml-[184px] flex gap-[9px]"><button onClick={() => setLocationOpen(false)} className="h-[38px] w-[91px] bg-[#00a65a] text-white">Submit</button><button onClick={() => setLocationOpen(false)} className="h-[38px] w-[87px] bg-[#dd4b39] text-white">Cancel</button></div>
+        </div>
+      </div>}
+      {passwordOpen && <div role="dialog" aria-label="Change Password" className="fixed inset-0 z-[1050] bg-black/50">
+        <div className="mx-auto mt-[80px] w-[600px] bg-white text-[12px] text-[#333] shadow-xl">
+          <div className="flex h-[45px] items-center border-b px-[15px]"><b>Change Password</b><button aria-label="Close" className="ml-auto text-[21px]" onClick={() => setPasswordOpen(false)}>×</button></div>
+          <div className="px-[30px] py-[20px]">
+            {passwordError && <div className="mb-2 bg-red-50 p-2 text-red-700">{passwordError}</div>}
+            <div className="grid grid-cols-[130px_315px] items-center gap-y-[6px]">
+              <label htmlFor="oldPassword">Old Password</label><input id="oldPassword" maxLength={20} type="password" value={passwords.old} onChange={(event) => setPasswords({ ...passwords, old: event.target.value })} className="h-[24px] border px-2" />
+              <label htmlFor="newPassword">New Password</label><input id="newPassword" maxLength={20} type="password" value={passwords.next} onChange={(event) => setPasswords({ ...passwords, next: event.target.value })} className="h-[24px] border px-2" />
+              <span /> <div><div className="h-[5px] w-full bg-slate-200"><div className={`h-full ${passwordStrength < 3 ? 'w-1/3 bg-red-500' : passwordStrength < 7 ? 'w-2/3 bg-orange-500' : 'w-full bg-green-600'}`} /></div><span>{passwordStrength < 3 ? 'Weak' : passwordStrength < 7 ? 'Medium' : 'Strong'}</span></div>
+              <label htmlFor="confirmPassword">Confirm Password</label><input id="confirmPassword" maxLength={20} type="password" value={passwords.confirm} onChange={(event) => setPasswords({ ...passwords, confirm: event.target.value })} className="h-[24px] border px-2" />
+            </div>
+            <div className="mt-[24px] flex justify-end gap-[8px]"><button onClick={savePassword} className="h-[34px] bg-[#00a65a] px-[15px] text-white">Save</button><button onClick={() => setPasswordOpen(false)} className="h-[34px] border px-[15px]">Cancel</button></div>
+          </div>
+        </div>
+      </div>}
+      {speedOpen && <div role="dialog" aria-label="Speed Test" className="fixed inset-0 z-[1050] bg-black/50">
+        <div className="mx-auto mt-[20px] w-[900px] bg-white text-[#333] shadow-xl">
+          <div className="flex h-[45px] items-center border-b px-[15px]"><b>Speed Test</b><button aria-label="Close" className="ml-auto text-[21px]" onClick={() => setSpeedOpen(false)}>×</button></div>
+          <div className="grid grid-cols-5 gap-4 px-[70px] py-[38px] text-center"><div><b>Download</b><p className="mt-3 text-2xl">0.0 <small className="text-xs">Mbps</small></p></div><div><b>Upload</b><p className="mt-3 text-2xl">0.0 <small className="text-xs">Mbps</small></p></div><div><b>Latency</b><p className="mt-3 text-2xl">0 <small className="text-xs">ms</small></p></div><div><b>Jitter</b><p className="mt-3 text-2xl">0 <small className="text-xs">ms</small></p></div><div><b>Packet Loss</b><p className="mt-3 text-2xl">0%</p></div></div>
+          <div className="flex items-center justify-between border-t px-[70px] py-[18px]"><button onClick={() => showFeedback('Speed test requires the authenticated speedtest service.', 'err')} className="h-[34px] bg-[#3c8dbc] px-[15px] text-white">Start Speed Test</button><span className="text-xs">Measured at --:--:--</span></div>
+        </div>
+      </div>}
+      {activityOpen && <div role="dialog" aria-label="User Activity Log" className="fixed inset-0 z-[1050] bg-black/50">
+        <div className="mx-auto mt-[20px] w-[900px] bg-white text-[#333] shadow-xl">
+          <div className="flex h-[45px] items-center border-b px-[15px]"><b>User Activity Log</b><button aria-label="Close" className="ml-auto text-[21px]" onClick={() => setActivityOpen(false)}>×</button></div>
+          <div className="px-[20px] py-[14px]"><table className="w-full border-collapse text-xs"><thead><tr>{['LogInTime','LogOutTime','IPAddress'].map((label) => <th key={label} className="border bg-slate-100 px-2 py-2 text-left">{label}</th>)}</tr></thead><tbody><tr><td colSpan={3} className="border px-2 py-5 text-center">No records to view</td></tr></tbody></table><div className="mt-[12px] flex justify-end"><button onClick={() => setActivityOpen(false)} className="h-[34px] border px-[15px]">Close</button></div></div>
+        </div>
+      </div>}
     </div>
   );
 }

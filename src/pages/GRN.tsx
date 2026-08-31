@@ -149,4 +149,4 @@ function ManageASN() {
   </div>;
 }
 
-export default function GRN() { return new URLSearchParams(window.location.search).has('inboundNo') ? <InboundCreateEdit/> : <ManageASN/>; }
+export default function GRN() { const query=new URLSearchParams(window.location.search);return query.has('inboundNo')||query.has('inboundNumber') ? <InboundCreateEdit/> : <ManageASN/>; }

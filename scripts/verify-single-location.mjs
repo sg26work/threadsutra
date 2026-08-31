@@ -220,7 +220,7 @@ try {
   if (await inboundPanel.getByRole('button').count() !== 1) throw new Error('PO Inbound exposes controls beyond the observed Inbound No link.');
   await inboundPanel.getByRole('button', { name: inboundNo, exact: true }).click();
   if (!page.url().includes(`/app/grn?inboundNumber=${encodeURIComponent(inboundNo)}&receiveType=PO`)) throw new Error('Inbound No did not open the existing Inbound Create/Edit workflow with observed parameters.');
-  await page.getByText('Inbound Create/Edit', { exact: true }).first().waitFor();
+  await page.locator('[data-screen-frame][aria-hidden="false"] main').getByText('Inbound Create/Edit', { exact: true }).first().waitFor();
   if (await page.locator('vite-error-overlay').count()) throw new Error('Vite overlay is present.');
   if (runtimeErrors.length) throw new Error(`Runtime/console errors: ${runtimeErrors.join(' | ')}`);
   if (apiErrors.length) throw new Error(`API errors: ${apiErrors.join(' | ')}`);

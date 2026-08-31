@@ -22,12 +22,13 @@ export default async function handler(req, res) {
       return res.status(200).json((await groups()).filter((row) => matches(row, { code, name, status })));
     }
     if (req.method === 'POST') {
-      if (req.body?.REQ_SEARCH_FLAG) {
+      if (String(req.body?.REQ_SEARCH_FLAG) === 'true') {
         const b = req.body;
-        const filtered = (await groups()).filter((row) => matches(row, { code: b.custGroupCode, name: b.custGroupName, status: b.statusText }));
+        const status = ({ '1': 'Active', '0': 'InActive' })[String(b.status ?? b.statusText)] || '';
+        const filtered = (await groups()).filter((row) => matches(row, { code: b.custGroupCode, name: b.custGroupName, status }));
         const size = [20, 50, 100, 200].includes(Number(b.rows)) ? Number(b.rows) : 20;
         const page = Math.max(1, Number(b.page) || 1), records = filtered.length, total = Math.ceil(records / size), gridModel = filtered.slice((page - 1) * size, page * size);
-        return res.status(200).json({ gridModel, rows: gridModel, page, records, total, sidx: String(b.sidx || 'custGroupCode'), sord: String(b.sord || 'desc') });
+        return res.status(200).json({ gridModel: gridModel.length ? gridModel : null, rows: gridModel.length ? gridModel : null, page, records, total, sidx: String(b.sidx || 'custGroupCode'), sord: String(b.sord || 'desc') });
       }
       const name = String(req.body.name || '').trim();
       if (!name) return res.status(400).json({ error: 'Please Enter Customer Group Name.' });

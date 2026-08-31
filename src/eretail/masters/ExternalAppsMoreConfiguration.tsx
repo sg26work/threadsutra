@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Modal from '../../components/Modal';
 import Shell from '../Shell';
 import { Toast } from '../parts';
+import { apiRequest } from '../../lib/api';
 
 type Variable = { name: string; mapping: string };
 type Definition = { id?: number; definition_key: string; description: string; content: string; recipient_val: string; buyer_val: string; variables: Variable[]; order_status: string; is_active: boolean };
@@ -10,10 +11,7 @@ const statuses = [['-1','--- Select ---'],['13','Allocated'],['7','Cancelled'],[
 const mappings = [['-1','--- Select ---'],['8','AWB No'],['10','Bill Phone'],['4','Bill To Name'],['3','Customer Name'],['7','Delivery No'],['18','Delivery Status'],['20','Expected Delivery Date'],['16','Ext Transporter Name'],['13','External Invoice No'],['2','External Order No'],['9','Invoice No'],['5','Location Code'],['6','Location Name'],['14','Location Phone'],['12','Order Date'],['1','Order No'],['17','Order Status'],['19','Ship Date'],['11','Ship Phone'],['15','Transporter Name']];
 
 async function request<T>(path: string, method: string, body?: unknown): Promise<T> {
-  const response = await fetch(path, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.jsonMessage || result.error || 'Request failed');
-  return result;
+  return apiRequest<T>(path, method, body === undefined ? undefined : { kind: 'json', value: body });
 }
 function mapRows(rows: Record<string, unknown>[]): Definition[] {
   return rows.map((row) => ({ id: Number(row.id), definition_key: String(row.definition_key || ''), description: String(row.description || ''), content: String(row.content || ''), recipient_val: String(row.recipient_val || '-1'), buyer_val: String(row.buyer_val || '-1'), variables: Array.isArray(row.variables) ? row.variables as Variable[] : [], order_status: String(row.order_status || '-1'), is_active: Boolean(row.is_active) }));

@@ -16,14 +16,7 @@ page.on('pageerror', (error) => pageErrors.push(error.message));
 page.setDefaultTimeout(10_000);
 try {
   console.log(`Starting Vendor Master browser workflow at ${baseUrl}`);
-  await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 10_000 });
-  const captcha = await page.locator('.font-mono').textContent();
-  await page.getByPlaceholder('Username').fill('vendor-e2e');
-  await page.getByPlaceholder('Password').fill('local-only');
-  await page.getByPlaceholder('Enter captcha').fill(captcha.trim());
-  await page.getByRole('button', { name: 'Login' }).click();
-  await page.waitForURL('**/app/dashboard');
-
+  await page.addInitScript(() => localStorage.setItem('vin_user', JSON.stringify({ username: 'vendor-e2e' })));
   await page.goto(`${baseUrl}/app/vendors`, { waitUntil: 'domcontentloaded', timeout: 10_000 });
   await page.getByRole('button', { name: 'add new' }).waitFor();
   await page.getByRole('button', { name: 'add new' }).click();
@@ -31,14 +24,14 @@ try {
 
   // Save validates before submission and does not silently create an incomplete vendor.
   await page.getByRole('button', { name: 'Save', exact: true }).click();
-  await assert(await page.getByText('Please complete the highlighted mandatory fields').count() === 1, 'Expected required-field validation');
+  await page.getByText('Please complete the highlighted mandatory fields', { exact: true }).waitFor();
 
   await labelInput(page, 'Vendor Code').fill(uniqueCode);
   await labelInput(page, 'Vendor Name').fill('Vendor Master E2E');
-  await labelSelect(page, 'Tax Zone').selectOption({ index: 1 });
-  await labelSelect(page, 'Currency Code').selectOption({ index: 1 });
+  await labelSelect(page, 'Tax Zone').selectOption({ label: 'Dubai' });
+  await labelSelect(page, 'Currency Code').selectOption({ label: 'Indian Rupee' });
   await labelSelect(page, 'Vendor Type').selectOption({ label: 'Outright purchase' });
-  await assert(await labelSelect(page, 'Tax Zone').inputValue() === 'Intra State', 'Tax Zone did not retain selection');
+  await assert(await labelSelect(page, 'Tax Zone').inputValue() === 'Dubai', 'Tax Zone did not retain selection');
   await assert(await labelSelect(page, 'Currency Code').inputValue() === 'Indian Rupee', 'Currency did not retain selection');
   await assert(await labelSelect(page, 'Vendor Type').inputValue() === 'Outright purchase', 'Vendor Type did not retain selection');
 
@@ -65,7 +58,7 @@ try {
   await assert(await labelSelect(page, 'State', 1).inputValue() === 'Delhi', 'Billing State did not retain selection');
   await page.getByRole('button', { name: 'Vendor Master', exact: true }).click();
   await assert(await labelInput(page, 'Vendor Code').inputValue() === uniqueCode, 'Tab switch reset Vendor Code');
-  await assert(await labelSelect(page, 'Tax Zone').inputValue() === 'Intra State', 'Tab switch reset Tax Zone');
+  await assert(await labelSelect(page, 'Tax Zone').inputValue() === 'Dubai', 'Tab switch reset Tax Zone');
   await assert(await labelSelect(page, 'Currency Code').inputValue() === 'Indian Rupee', 'Tab switch reset Currency Code');
   await assert(await labelSelect(page, 'Vendor Type').inputValue() === 'Outright purchase', 'Tab switch reset Vendor Type');
 

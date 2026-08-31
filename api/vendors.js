@@ -18,6 +18,16 @@ export default async function handler(req, res) {
     }
     if (req.method === 'POST') {
       const b = req.body;
+      if (b.REQ_SEARCH_FLAG) {
+        const vendorType = { '4': 'B2S2', '3': 'JIT', '2': 'Marketplace', '1': 'Outright purchase' }[String(b.vendorType)] || b.vendorType;
+        const paymentTerm = { '1':'30 Days','2':'45 Days','3':'60 Days','4':'90 Days','5':'Advance','6':'120 days from the date of receipt of goods','7':'7 days','8':'50 Days','9':'75 DAYS','10':'35 Days','11':'120','13':'Letter of Credit','15':'7 Days','16':'1' }[String(b.paymentTerm)] || b.paymentTerm;
+        const status = { '1':'Confirmed','2':'Deactivated','0':'Pending Confirmation' }[String(b.status)] || b.status;
+        const matches = (await find('vendors', {}, { sort: { id: -1 } })).map(normalizeVendor).filter((vendor) => {
+          const tests = [[vendor.vendor_code,b.vendorCode],[vendor.vendor_name,b.vendorName],[vendor.vendor_type,vendorType],[vendor.vendor_short_name,b.vendorShortName],[vendor.credit_days,paymentTerm],[vendor.status,status],[vendor.country,b.country],[vendor.state,b.state],[vendor.city,b.city]];
+          return tests.every(([actual, expected]) => !String(expected || '').trim() || String(actual || '').toLowerCase().includes(String(expected).trim().toLowerCase()));
+        });
+        return res.status(200).json(matches);
+      }
       const code = String(b.vendor_code || '').trim();
       const name = String(b.vendor_name || '').trim();
       if (!code || !name) return res.status(400).json({ error: 'Vendor Code and Vendor Name are required' });

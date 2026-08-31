@@ -22,7 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (u: string, p: string) => {
     // Local replica authentication deliberately has no reference credentials.
     // A real auth provider can replace this boundary without changing UI code.
-    if (!u.trim() || !p) return { ok: false, error: 'Username and password are required' };
+    if (!u.trim() || !p) return { ok: false, error: 'Login Failed. Invalid Login Credentials.' };
     const usr = { username: u.trim() };
     setUser(usr);
     localStorage.setItem('vin_user', JSON.stringify(usr));

@@ -49,6 +49,8 @@ try {
   await page.getByText(description, { exact: true }).waitFor();
   await page.getByRole('table').getByRole('button', { name: String(extAppSubId), exact: true }).click();
   await page.getByRole('button', { name: 'More Configuration', exact: true }).click();
+  await page.waitForURL('**screen=more-configuration**');
+  assert.equal(await page.locator('[data-screen-frame][aria-hidden="false"]').count(), 1, 'More Configuration must activate exactly one retained screen');
 
   await page.getByText('MASTER > Miscellaneous > More Configuration', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Create Definition', exact: true }).click();
@@ -60,7 +62,7 @@ try {
   await page.getByLabel('Description 1').fill('Order shipped message');
   await page.getByLabel('Content 1').fill('Order %%orderNo%% has shipped');
   await page.getByRole('button', { name: 'Recipients', exact: true }).click();
-  await page.getByLabel('Recipient', { exact: true }).selectOption('1');
+  await page.getByRole('dialog', { name: 'Recipient' }).getByLabel('Recipient', { exact: true }).selectOption('1');
   assert.deepEqual(await page.getByLabel('Recipient Details').locator('option').allTextContents(), ['--- Select ---', 'Alternate Contact No', 'Both', 'Primary Contact No']);
   await page.getByLabel('Recipient Details').selectOption('1');
   await page.getByRole('button', { name: 'OK', exact: true }).click();
@@ -110,7 +112,9 @@ try {
   assert.equal(deleted.rows.length, 0);
 
   await page.getByRole('button', { name: 'Cancel', exact: true }).click();
-  await page.getByRole('button', { name: 'More Configuration', exact: true }).waitFor();
+  await page.waitForURL(`**screen=editor&id=${extAppSubId}`);
+  assert.equal(await page.locator('[data-screen-frame][aria-hidden="false"]').count(), 1, 'Returning to External Apps editor must activate exactly one retained screen');
+  await page.locator('[data-screen-frame][aria-hidden="false"]').getByRole('main').getByRole('button', { name: 'More Configuration', exact: true }).waitFor();
   assert.deepEqual(errors, []);
   console.log('PASS External Apps More Configuration: exact columns, entry point, validation, recipients, variables, clone/remove/delete, persistence, active toggle, and clean console.');
 } finally {

@@ -1,14 +1,11 @@
-import { ReactNode } from 'react';
-import { CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { ReactNode, useEffect } from 'react';
+import { useScreens } from './ScreenContext';
 
 export function Toast({ msg, type, onClose }: { msg: string; type: 'ok' | 'err'; onClose: () => void }) {
-  return (
-    <div className={`fixed bottom-5 right-5 z-[100] flex items-center gap-2 rounded-xl px-4 py-3 text-sm text-white shadow-xl ring-1 ring-black/5 animate-[toastIn_0.25s_ease-out] ${type === 'ok' ? 'bg-gradient-to-r from-emerald-500 to-teal-600' : 'bg-gradient-to-r from-rose-500 to-red-600'}`}>
-      {type === 'ok' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-      {msg}
-      <button onClick={onClose} className="ml-2 rounded-full p-0.5 hover:bg-white/20"><X size={14} /></button>
-    </div>
-  );
+  const { showFeedback } = useScreens();
+  useEffect(() => { showFeedback(msg, type); }, [msg, type, showFeedback]);
+  useEffect(() => { const timer = setTimeout(onClose, 15000); return () => clearTimeout(timer); }, [msg, type, onClose]);
+  return null;
 }
 
 const STATUS_CLS: Record<string, string> = {

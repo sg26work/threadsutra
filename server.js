@@ -138,6 +138,8 @@ import ajio from "./api/ajio.js";
 import amazonMfn from "./api/amazon-mfn.js";
 import vinLister from "./api/vin-lister.js";
 import backOrders from "./api/back-orders.js";
+import globalHeaderSearch from "./api/global-header-search.js";
+import sellerPanelDashboard from "./api/seller-panel-dashboard.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -153,6 +155,8 @@ const routes = {
   "/api/partners": partners,
   "/api/sale-orders": saleOrders,
   "/api/back-orders": backOrders,
+  "/api/jsonOrderExits": globalHeaderSearch,
+  "/api/seller-panel-dashboard": sellerPanelDashboard,
   "/api/purchase-orders": purchaseOrders,
   "/api/po-revision": poRevision,
   "/api/purchase-order-comments": purchaseOrderComments,
@@ -195,14 +199,20 @@ const routes = {
   "/api/dashboard": dashboard,
   "/api/platforms": platforms,
   "/api/vendors": vendors,
+  "/api/jsonVendorEnquirySearch": vendors,
   "/api/taxcodes": taxcodes,
   "/api/coupons": coupons,
+  "/api/fetchCouponEnquiryData": coupons,
   "/api/taxapp": taxapp,
   "/api/skubarcode": skubarcode,
   "/api/customers": customers,
+  "/api/jsonCustEnqSearch": customers,
   "/api/transporters": transporters,
+  "/api/jsonTransporterEnquirySearch": transporters,
   "/api/clients": clients,
+  "/api/jsonClientMasterEnquirySearch": clients,
   "/api/customer-groups": customerGroups,
+  "/api/jsonCustGroupSearch": customerGroups,
   "/api/tax-categories": taxCategories,
   "/api/tax-groups": taxGroups,
   "/api/tax-zones": taxZones,

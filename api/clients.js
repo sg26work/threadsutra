@@ -5,11 +5,11 @@ export default async function handler(req,res){
  if(cors(req,res))return;
  try{
   if(req.method==='GET')return res.status(200).json((await find('partners',{type:'Client'},{sort:{id:-1}})).map(normalize));
-  if(req.method==='POST'&&req.body?.REQ_SEARCH_FLAG){
+  if(req.method==='POST'&&String(req.body?.REQ_SEARCH_FLAG)==='true'){
    const b=req.body,has=(v,q)=>!String(q??'').trim()||String(v??'').toLowerCase().includes(String(q).trim().toLowerCase());
    const filtered=(await find('partners',{type:'Client'},{sort:{id:-1}})).map(normalize).filter(r=>has(r.client_id,b.clientId)&&has(r.client_name,b.clientName)&&has(r.client_short_name,b.clientShortName)&&has(r.status,b.status)&&has(r.country,b.country)&&has(r.state,b.state)&&has(r.city,b.city));
    const size=[20,50,100,200].includes(Number(b.rows))?Number(b.rows):20,page=Math.max(1,Number(b.page)||1),records=filtered.length,total=Math.ceil(records/size),gridModel=filtered.slice((page-1)*size,page*size);
-   return res.status(200).json({gridModel,rows:gridModel,page,records,total,sidx:String(b.sidx||'clientId'),sord:String(b.sord||'desc')});
+   return res.status(200).json({gridModel:gridModel.length?gridModel:null,rows:gridModel.length?gridModel:null,page,records,total,sidx:String(b.sidx||'clientId'),sord:String(b.sord||'desc')});
   }
   if(req.method==='POST'){
    const b=req.body,id=String(b.client_id||'').trim(); if(!/^\d+$/.test(id))return res.status(400).json({error:'Client Id must be numeric.'});

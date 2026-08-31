@@ -1,4 +1,5 @@
-import { ReactNode, useState, useMemo } from 'react';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { useGlobalBlocking } from './ScreenContext';
 import {
   Search, HelpCircle, Home, ChevronRight, X,
   ChevronsLeft, ChevronLeft, ChevronsRight, Pencil, Info, Trash2, ArrowUpDown,
@@ -14,6 +15,7 @@ export type ECol = {
   sortable?: boolean;
   align?: 'left' | 'center' | 'right';
   filterAction?: (value: string, setValue: (value: string) => void) => void;
+  filterKey?: string;
 };
 
 export type EAction = { label: string; icon?: any; onClick: (filteredRows?: any[]) => void; variant?: 'green' | 'ghost' };
@@ -30,6 +32,7 @@ export function StatusPill({ active }: { active: boolean }) {
 export default function EnquiryScreen({
   breadcrumb, cols, rows, loading, actions = [], fields = [], onRowEdit, onRowInfo, onRowDelete, selectedIds = [], onSelectionChange,
   emptyText = 'No records to view', onSearch, onReset, remote, pageSizes = [20, 50, 100, 200], sectionTitle, actionsBeforeResetCount = 0, hideActionBar = false, initialFilters = {},
+  textFilterBehavior = 'enter', selectFilterBehavior = 'manual', filterDelay = 500,
 }: {
   breadcrumb: { label: string }[];
   cols: ECol[];
@@ -51,16 +54,32 @@ export default function EnquiryScreen({
   actionsBeforeResetCount?: number;
   hideActionBar?: boolean;
   initialFilters?: Record<string, string>;
+  textFilterBehavior?: 'enter' | 'debounced' | 'manual';
+  selectFilterBehavior?: 'change' | 'manual';
+  filterDelay?: number;
 }) {
+  useGlobalBlocking(!!loading);
   const [filters, setFilters] = useState<Record<string, string>>(initialFilters);
   const [applied, setApplied] = useState<Record<string, string>>({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
+  const filterTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (filterTimer.current) clearTimeout(filterTimer.current); }, []);
 
   const setF = (k: string, v: string) => setFilters((f) => ({ ...f, [k]: v }));
-  const doSearch = () => { setApplied(filters); setPage(1); onSearch?.(filters, 1, remote?.pageSize || pageSize); };
+  const runSearch = (next: Record<string, string>) => { setApplied(next); setPage(1); onSearch?.(next, 1, remote?.pageSize || pageSize); };
+  const doSearch = () => runSearch(filters);
+  const changeFilter = (key: string, value: string, behavior: 'text' | 'select') => {
+    const next = { ...filters, [key]: value };
+    setFilters(next);
+    if (behavior === 'select' && selectFilterBehavior === 'change') runSearch(next);
+    if (behavior === 'text' && textFilterBehavior === 'debounced') {
+      if (filterTimer.current) clearTimeout(filterTimer.current);
+      filterTimer.current = setTimeout(() => runSearch(next), filterDelay);
+    }
+  };
   const doReset = () => { setFilters(initialFilters); setApplied({}); setPage(1); onReset?.(); };
 
   const filtered = useMemo(() => {
@@ -141,14 +160,14 @@ export default function EnquiryScreen({
               {cols.map((c) => (
                 <th key={c.key} className="px-2 pb-2">
                   {c.filter === 'none' ? null : c.filter === 'select' ? (
-                    <select value={filters[c.key] || ''} onChange={(e) => setF(c.key, e.target.value)} className="w-full rounded border border-slate-300 px-2 py-1.5 text-xs text-slate-600 outline-none focus:border-[#2f9e9e]">
+                    <select value={filters[c.filterKey || c.key] || ''} onChange={(e) => changeFilter(c.filterKey || c.key, e.target.value, 'select')} className="w-full rounded border border-slate-300 px-2 py-1.5 text-xs text-slate-600 outline-none focus:border-[#2f9e9e]">
                       <option value="">--- Select ---</option>
                       {(c.options || []).map((o) => <option key={o} value={o}>{o}</option>)}
                     </select>
                   ) : (
                     <div className="flex items-center rounded border border-slate-300 bg-white px-2">
-                      <input value={filters[c.key] || ''} onChange={(e) => setF(c.key, e.target.value)} onKeyDown={(e) => e.key === 'Enter' && doSearch()} className="w-full py-1.5 text-xs outline-none" />
-                      {c.filterAction ? <button aria-label={`Select ${c.label}`} type="button" onClick={() => c.filterAction?.(filters[c.key] || '', (value) => setF(c.key, value))} className="px-1 text-sky-700">...</button> : <Search size={12} className="text-slate-400" />}
+                      <input value={filters[c.filterKey || c.key] || ''} onChange={(e) => changeFilter(c.filterKey || c.key, e.target.value, 'text')} onKeyDown={(e) => { if (e.key !== 'Enter') return; if (textFilterBehavior === 'debounced') e.preventDefault(); else if (textFilterBehavior === 'enter') doSearch(); }} className="w-full py-1.5 text-xs outline-none" />
+                      {c.filterAction ? <button aria-label={`Select ${c.label}`} type="button" onClick={() => c.filterAction?.(filters[c.filterKey || c.key] || '', (value) => setF(c.filterKey || c.key, value))} className="px-1 text-sky-700">...</button> : <Search size={12} className="text-slate-400" />}
                     </div>
                   )}
                 </th>

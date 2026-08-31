@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { type KeyboardEvent, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Download, Plus } from "lucide-react";
 import Shell from "../Shell";
 import Modal from "../../components/Modal";
 import { apiGet, apiSend } from "../../lib/api";
+import { useGlobalBlocking } from "../ScreenContext";
 import { useDownload } from "../../context/DownloadContext";
+import { Toast } from "../parts";
 
 const PAGE_SIZES = [20, 50, 100, 200];
 const STATUS = [
@@ -100,7 +103,11 @@ const blankLine = (): PromoLine => ({
 
 export default function VendorPromotions() {
   const { requestDownload } = useDownload();
-  const [mode, setMode] = useState<"enquiry" | "editor">("enquiry");
+  const locationState = useLocation();
+  const navigate = useNavigate();
+  const editorParams = new URLSearchParams(locationState.search);
+  const mode = editorParams.get("screen") === "editor" ? "editor" : "enquiry";
+  const editorDiscKey = editorParams.get("discKey") || "";
   const [form, setForm] = useState<Promotion>(blank());
   const [tab, setTab] = useState<"info" | "locations">("info");
   const [rows, setRows] = useState<Promotion[]>([]);
@@ -110,6 +117,7 @@ export default function VendorPromotions() {
   const [pageSize, setPageSize] = useState(20);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
+  useGlobalBlocking(loading);
   const [filters, setFilters] = useState({
     delLocation: "-1",
     vendorCode: "",
@@ -164,7 +172,17 @@ export default function VendorPromotions() {
       })
       .catch((error) => setNotice({ type: "err", text: error.message }));
   }, []);
-  const search = async (nextPage = 1, nextSize = pageSize) => {
+  useEffect(() => {
+    if (mode !== "editor") return;
+    setTab("info");
+    setLine(blankLine());
+    setNotice(null);
+    if (!editorDiscKey) { setForm(blank()); return; }
+    apiGet<Promotion>(`/api/vendor-promotions?discKey=${encodeURIComponent(editorDiscKey)}`)
+      .then(setForm)
+      .catch((error) => setNotice({ type: "err", text: error.message }));
+  }, [editorDiscKey, mode]);
+  const search = async (nextPage = 1, nextSize = pageSize, nextFilters = filters) => {
     setLoading(true);
     setNotice(null);
     try {
@@ -174,7 +192,7 @@ export default function VendorPromotions() {
         page: nextPage,
         sidx: "discKey",
         sord: "desc",
-        ...filters,
+        ...nextFilters,
         REQ_SEARCH_FLAG: true,
       });
       setRows(data.gridModel || data.rows || []);
@@ -189,6 +207,14 @@ export default function VendorPromotions() {
     } finally {
       setLoading(false);
     }
+  };
+  const changeAndSearch = (key: keyof typeof filters, value: string) => {
+    const next = { ...filters, [key]: value };
+    setFilters(next);
+    void search(1, pageSize, next);
+  };
+  const searchOnEnter = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') { event.preventDefault(); void search(1); }
   };
   const resetEnquiry = () => {
     setFilters((current) => ({
@@ -209,23 +235,7 @@ export default function VendorPromotions() {
     setAdvanced(false);
     setNotice(null);
   };
-  const openEditor = async (discKey?: string) => {
-    setNotice(null);
-    setTab("info");
-    setLine(blankLine());
-    if (discKey) {
-      try {
-        setForm(
-          await apiGet<Promotion>(
-            `/api/vendor-promotions?discKey=${encodeURIComponent(discKey)}`,
-          ),
-        );
-      } catch (error: any) {
-        return setNotice({ type: "err", text: error.message });
-      }
-    } else setForm(blank());
-    setMode("editor");
-  };
+  const openEditor = (discKey?: string) => navigate(`/app/m/vendor-promotions?screen=editor${discKey ? `&discKey=${encodeURIComponent(discKey)}` : ""}`);
   const save = async (requested: "1" | "4" | "7") => {
     if (form.status === "7" && requested !== "7")
       return setNotice({
@@ -422,20 +432,13 @@ export default function VendorPromotions() {
             Audit
           </button>
           <button
-            onClick={() => setMode("enquiry")}
+            onClick={() => navigate("/app/m/vendor-promotions")}
             className="rounded border px-4 py-2 text-sm"
           >
             Vendor Promotions
           </button>
         </div>
-        {notice && (
-          <p
-            role="alert"
-            className={`mb-2 rounded border p-2 text-sm ${notice.type === "ok" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}
-          >
-            {notice.text}
-          </p>
-        )}
+        {notice && <Toast msg={notice.text} type={notice.type} onClose={() => setNotice(null)} />}
         <div className="border bg-white">
           <div className="flex border-b bg-slate-50">
             <button
@@ -1043,14 +1046,7 @@ export default function VendorPromotions() {
           Add New
         </button>
       </div>
-      {notice && (
-        <p
-          role="alert"
-          className={`mb-2 rounded border p-2 text-sm ${notice.type === "ok" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}
-        >
-          {notice.text}
-        </p>
-      )}
+      {notice && <Toast msg={notice.text} type={notice.type} onClose={() => setNotice(null)} />}
       <div className="grid gap-3 border bg-white p-3 md:grid-cols-4">
         <label className="text-xs">
           Delivery Location
@@ -1074,6 +1070,7 @@ export default function VendorPromotions() {
             id="gs_vendorCode"
             className="ci mt-1 w-full"
             value={filters.vendorCode}
+            onKeyDown={searchOnEnter}
             onChange={(event) =>
               setFilters({ ...filters, vendorCode: event.target.value })
             }
@@ -1085,9 +1082,7 @@ export default function VendorPromotions() {
             id="gs_promoType"
             className="ci mt-1 w-full"
             value={filters.promoType}
-            onChange={(event) =>
-              setFilters({ ...filters, promoType: event.target.value })
-            }
+            onChange={(event) => changeAndSearch('promoType', event.target.value)}
           >
             <option value="-1">--- Select ---</option>
             <option value="1">Line Discount</option>
@@ -1099,9 +1094,7 @@ export default function VendorPromotions() {
             id="gs_status"
             className="ci mt-1 w-full"
             value={filters.status}
-            onChange={(event) =>
-              setFilters({ ...filters, status: event.target.value })
-            }
+            onChange={(event) => changeAndSearch('status', event.target.value)}
           >
             {STATUS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -1118,6 +1111,7 @@ export default function VendorPromotions() {
                 id="gs_promoName"
                 className="ci mt-1 w-full"
                 value={filters.promoName}
+                onKeyDown={searchOnEnter}
                 onChange={(event) =>
                   setFilters({ ...filters, promoName: event.target.value })
                 }
@@ -1129,6 +1123,7 @@ export default function VendorPromotions() {
                 id="gs_promoCode"
                 className="ci mt-1 w-full"
                 value={filters.promoCode}
+                onKeyDown={searchOnEnter}
                 onChange={(event) =>
                   setFilters({ ...filters, promoCode: event.target.value })
                 }
@@ -1141,6 +1136,7 @@ export default function VendorPromotions() {
                 type="date"
                 className="ci mt-1 w-full"
                 value={filters.startDate}
+                onKeyDown={searchOnEnter}
                 onChange={(event) =>
                   setFilters({ ...filters, startDate: event.target.value })
                 }
@@ -1153,6 +1149,7 @@ export default function VendorPromotions() {
                 type="date"
                 className="ci mt-1 w-full"
                 value={filters.endDate}
+                onKeyDown={searchOnEnter}
                 onChange={(event) =>
                   setFilters({ ...filters, endDate: event.target.value })
                 }

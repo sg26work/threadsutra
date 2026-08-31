@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-export type MItem = { label: string; to: string };
+export type MItem = { label: string; to?: string };
 export type MCol = { groups: { title: string; items: MItem[] }[] };
 export type RailEntry = {
   key: string;
@@ -14,17 +14,23 @@ export type RailEntry = {
   columns?: MCol[];
 };
 
-// helper: slug for generic module screens
+// Routes below are only used for dedicated, evidence-backed implementations.
 const g = (slug: string) => `/app/m/${slug}`;
 
 // ============================================================================
 //  Menu labels are captured from the authorized demo. Every menu item is
-//  clickable: evidence-backed screens route to their dedicated module. Routes
-//  that still use the generic fallback remain replication gaps until LIVE is
-//  inspected and a module-specific implementation is available.
+//  Evidence-backed screens route to their dedicated module. A captured label
+//  without an observed LOCAL workflow remains visible but deliberately does
+//  not navigate until its LIVE contract has been audited.
 // ============================================================================
 export const RAIL: RailEntry[] = [
-  { key: 'dashboard', icon: Gauge, title: 'Dashboard', single: '/app/dashboard' },
+  {
+    key: 'dashboard', icon: Gauge, title: 'Dashboard', single: '/app/dashboard',
+    columns: [{ groups: [{ title: '', items: [
+      { label: 'eRetail Dashboard', to: '/app/dashboard' },
+      { label: 'Seller Panel Dashboard', to: '/app/seller-panel-dashboard' },
+    ] }] }],
+  },
 
   {
     key: 'master', icon: ListTree, title: 'Master',
@@ -38,10 +44,12 @@ export const RAIL: RailEntry[] = [
           { label: 'Customer Group', to: '/app/customer-groups' },
         ]},
         { title: 'POS Setup', items: [
-          { label: 'Promotion Enquiry', to: '/app/promotions' },
           { label: 'Manage Coupons', to: '/app/coupons' },
-          { label: 'Manage Voucher Condition', to: g('voucher-condition') },
+          { label: 'Manage Voucher Condition' },
           { label: 'Generate Vouchers', to: g('vouchers') },
+        ]},
+        { title: 'Custom', items: [
+          { label: 'ConsolidateVendorReturn' },
         ]},
       ]},
       { groups: [
@@ -68,11 +76,15 @@ export const RAIL: RailEntry[] = [
           { label: 'Manage SKU Group', to: g('sku-group') },
           { label: 'Merchandising Hierarchy', to: g('merch-hierarchy') },
           { label: 'Manage Attribute', to: g('manage-attribute') },
+          { label: 'Attribute Set' },
+          { label: 'Vendor SKU Catalog' },
+          { label: 'Vendor SKU Loc Catalog' },
+          { label: 'ARS SKU-Location Link' },
         ]},
         { title: 'Miscellaneous', items: [
           { label: 'Other Masters', to: g('other-masters') },
-          { label: 'Tally Configuration', to: '/app/tally-configuration' },
           { label: 'Pricing Event', to: '/app/pricing-events' },
+          { label: 'Tally Configuration', to: '/app/tally-configuration' },
           { label: 'Price Zone Master', to: g('price-zone') },
           { label: 'External Apps', to: g('external-apps') },
           { label: 'Order Refund', to: g('order-refund') },
@@ -93,12 +105,10 @@ export const RAIL: RailEntry[] = [
         ]},
       ]},
       { groups: [
-        { title: 'Enquiry', items: [
+        { title: '', items: [
           { label: 'PO Enquiry', to: '/app/procurement/po-enquiry' },
           { label: 'PO Revision', to: '/app/purchase-orders' },
           { label: 'Manage ASN', to: '/app/grn' },
-          { label: 'Vendor Invoice', to: '/app/procurement/vendor-invoices' },
-          { label: 'OTB', to: '/app/procurement/otb' },
           { label: 'Vendor Promotions', to: g('vendor-promotions') },
         ]},
       ]},
@@ -120,14 +130,14 @@ export const RAIL: RailEntry[] = [
     key: 'sales', icon: ShoppingBag, title: 'Sales',
     columns: [
       { groups: [
-        { title: 'Manage Channels', items: [
+        { title: '', items: [
           { label: 'Manage Channels', to: '/app/channels' },
           { label: 'SKU Channel Listing', to: '/app/sku-channel-listing' },
           { label: 'OMS Rules', to: g('oms-rules') },
         ]},
       ]},
       { groups: [
-        { title: 'Order Enquiry', items: [
+        { title: '', items: [
           { label: 'Master Order Enquiry', to: '/app/master-order-enquiry' },
           { label: 'Order Enquiry', to: '/app/order-enquiry' },
           { label: 'Manage Kitting Order', to: g('kitting-order') },
@@ -177,6 +187,7 @@ export const RAIL: RailEntry[] = [
           { label: 'Shipment Handover', to: '/app/fulfillment/shipment-receiving' },
           { label: 'Order Acknowledgement', to: '/app/fulfillment/order-acknowledgement' },
           { label: 'Consolidate EWB', to: '/app/fulfillment/consolidate-ewb' },
+          { label: 'Sort To Box', to: '/app/fulfillment/sort-to-box' },
         ]},
         { title: 'Inbound', items: [
           { label: 'Manage Inbound Gate Pass', to: '/app/r/inbound-gate-pass' },
@@ -184,6 +195,12 @@ export const RAIL: RailEntry[] = [
           { label: 'Inbound Create/Edit', to: '/app/r/inbound-create-edit' },
           { label: 'Inbound RealTime', to: '/app/r/inbound-realtime' },
           { label: 'Inbound QC', to: '/app/r/inbound-qc' },
+          { label: 'Direct Inbound' },
+          { label: 'STO Inbound' },
+          { label: 'Link USN IMEI' },
+          { label: 'Return Inbound Create/Edit' },
+          { label: 'FnV QC Enquiry' },
+          { label: 'FNV Inbound' },
         ]},
       ]},
       { groups: [
@@ -195,6 +212,18 @@ export const RAIL: RailEntry[] = [
           { label: 'Cycle Count', to: '/app/r/cycle-count' },
           { label: 'BIN Audit', to: '/app/r/bin-audit' },
           { label: 'Bulk update Lottables', to: '/app/r/bulk-lottables' },
+          { label: 'Inventory Hold' },
+          { label: 'Manage Stock Adjustment' },
+          { label: 'OutBound GatePass' },
+          { label: 'Manage Outbound Memo' },
+          { label: 'SKU Transaction History' },
+          { label: 'Manage SKU Lot Transfer' },
+          { label: 'Manage RePack' },
+          { label: 'SKU Lot Transfer Create/Edit' },
+          { label: 'Manage Inventory Reservation' },
+          { label: 'Inventory Move By Task' },
+          { label: 'Manage Let Down' },
+          { label: 'FnV Repack' },
         ]},
         { title: 'Miscellaneous', items: [
           { label: 'PutAway Enquiry', to: '/app/r/putaway-enquiry' },
@@ -219,8 +248,8 @@ export const RAIL: RailEntry[] = [
         { title: 'Returns', items: [
           { label: 'RTV Enquiry', to: '/app/returns/rtv-enquiry' },
           { label: 'Vendor Return Create/Edit', to: '/app/returns/vendor-return' },
-          { label: 'Customer Return Enquiry', to: '/app/returns/customer-enquiry' },
-          { label: 'Customer Return Create/Edit', to: '/app/returns/customer-return' },
+          { label: 'Return Enquiry', to: '/app/returns/customer-enquiry' },
+          { label: 'Return Create/Edit', to: '/app/returns/customer-return' },
           { label: 'Return OTC(Flipkart)', to: g('return-otc') },
           { label: 'Return OTC(Flipkart) New', to: g('return-otc-new') },
           { label: 'Global Returns Search', to: '/app/returns/global-search' },
@@ -246,13 +275,13 @@ export const RAIL: RailEntry[] = [
           { label: 'Role Create/Edit', to: '/app/admin/role-create-edit' },
         ]},
         { title: 'Logs', items: [
-          { label: 'User Audit Logs', to: g('user-audit-logs') },
-          { label: 'Accounting Log', to: g('accounting-log') },
-          { label: 'Tax Integration Log', to: g('tax-integration-log') },
-          { label: 'Device Tracking Log', to: g('device-tracking-log') },
-          { label: 'External Apps Logs', to: g('external-apps-logs') },
-          { label: 'POS Integration Log', to: g('pos-integration-log') },
-          { label: 'Repush Log', to: g('repush-log') },
+          { label: 'User Audit Logs' },
+          { label: 'Accounting Log' },
+          { label: 'Tax Integration Log' },
+          { label: 'Device Tracking Log' },
+          { label: 'External Apps Logs' },
+          { label: 'POS Integration Log' },
+          { label: 'Repush Log' },
         ]},
       ]},
       { groups: [
@@ -266,9 +295,9 @@ export const RAIL: RailEntry[] = [
           { label: 'Exports', to: '/app/admin/exports' },
           { label: 'Force Order Pull', to: '/app/admin/force-order-pull' },
           { label: 'Settings', to: '/app/admin/settings' },
-          { label: 'Audit Logs', to: '/app/admin/audit-logs' },
           { label: 'Manage Api', to: '/app/admin/manage-api' },
           { label: 'API Dashboard', to: '/app/admin/api-dashboard' },
+          { label: 'Language Setting' },
         ]},
       ]},
     ],

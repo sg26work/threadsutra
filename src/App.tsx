@@ -1,6 +1,8 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import { AuthProvider } from "./context/AuthContext";
 import { DownloadProvider } from "./context/DownloadContext";
+import { GlobalScreenOverlayHost, ScreenFrameProvider, ScreenProvider, useScreens } from "./eretail/ScreenContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Shell from "./eretail/Shell";
 import Login from "./pages/Login";
@@ -26,7 +28,6 @@ import Reports from "./pages/Reports";
 
 // eRetail shell
 import EDashboard from "./eretail/EDashboard";
-import GenericRoute from "./eretail/GenericRoute";
 import VendorPromotions from "./eretail/procurement/VendorPromotions";
 import PurchaseChargeMasters from "./eretail/procurement/PurchaseChargeMasters";
 import CategoryBuyers from "./eretail/procurement/CategoryBuyers";
@@ -142,17 +143,16 @@ import SortToBox from "./eretail/modules/SortToBox";
 import AJIOWorkflow from "./eretail/modules/AJIOWorkflow";
 import AmazonMFNWorkflow from "./eretail/modules/AmazonMFNWorkflow";
 import VinLister from "./eretail/VinLister";
+import Profile from "./eretail/Profile";
+import SellerPanelDashboard from "./eretail/SellerPanelDashboard";
 
 function P({ children }: { children: React.ReactNode }) {
   return <ProtectedRoute>{children}</ProtectedRoute>;
 }
 
-export default function App() {
+function RouteSet({ location }: { location?: string }) {
   return (
-    <AuthProvider>
-      <DownloadProvider>
-        <BrowserRouter>
-          <Routes>
+          <Routes location={location}>
             <Route path="/" element={<Login />} />
 
             {/* eRetail shell — dashboard landing */}
@@ -164,6 +164,8 @@ export default function App() {
                 </P>
               }
             />
+            <Route path="/app/profile" element={<P><Profile /></P>} />
+            <Route path="/app/seller-panel-dashboard" element={<P><SellerPanelDashboard /></P>} />
             <Route
               path="/app/control-tower"
               element={
@@ -458,14 +460,6 @@ export default function App() {
             <Route path="/app/wms/manage-awb" element={<P><ManageAwb /></P>} />
             <Route path="/app/wms/transporter-preference" element={<P><TransporterPreference /></P>} />
             <Route path="/app/wms/service-pin-codes" element={<P><ServicePinCodes /></P>} />
-            <Route
-              path="/app/m/:key"
-              element={
-                <P>
-                  <GenericRoute />
-                </P>
-              }
-            />
             <Route
               path="/app/transfers"
               element={
@@ -894,6 +888,48 @@ export default function App() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+  );
+}
+
+function PersistentRouteHost() {
+  const location = useLocation();
+  const { screens, closingPaths, settleNavigation } = useScreens();
+  const currentPath = `${location.pathname}${location.search}`;
+
+  useEffect(() => {
+    settleNavigation(currentPath);
+  }, [currentPath, settleNavigation]);
+
+  if (!location.pathname.startsWith('/app/')) return <RouteSet />;
+
+  const registered = screens.map((screen) => ({ key: screen.label, path: screen.path }));
+  const frames = registered.some((screen) => screen.path === currentPath) || closingPaths.includes(currentPath)
+    ? registered
+    : [...registered, { key: `pending:${currentPath}`, path: currentPath }];
+
+  return <>{frames.map((screen) => (
+    <div
+      key={screen.key}
+      data-screen-frame={screen.key}
+      aria-hidden={screen.path !== currentPath}
+      style={{ display: screen.path === currentPath ? 'contents' : 'none' }}
+    >
+      <ScreenFrameProvider frameKey={screen.key} path={screen.path}>
+        <RouteSet location={screen.path} />
+      </ScreenFrameProvider>
+    </div>
+  ))}</>;
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <DownloadProvider>
+        <BrowserRouter>
+          <ScreenProvider>
+            <GlobalScreenOverlayHost />
+            <PersistentRouteHost />
+          </ScreenProvider>
         </BrowserRouter>
       </DownloadProvider>
     </AuthProvider>

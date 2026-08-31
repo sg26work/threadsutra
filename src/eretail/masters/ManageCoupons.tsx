@@ -1,19 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Plus, Download, SlidersHorizontal } from 'lucide-react';
 import Shell from '../Shell';
 import Modal from '../../components/Modal';
 import { Toast } from '../parts';
-import EnquiryScreen, { ECol, StatusPill } from '../EnquiryScreen';
-import { apiGet, apiSend } from '../../lib/api';
+import EnquiryScreen, { ECol } from '../EnquiryScreen';
+import { apiForm, apiSend } from '../../lib/api';
 import { useDownload } from '../../context/DownloadContext';
 
-const TYPES = ['Percentage', 'Flat Amount', 'Free Shipping', 'BOGO'];
+const TYPES = ['Line', 'Bill'];
 const fmt = (iso: string) => { if (!iso) return ''; const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; };
 
 export default function ManageCoupons() {
   const { requestDownload } = useDownload();
   const [rows, setRows] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [page,setPage]=useState(1),[pageSize,setPageSize]=useState(20),[records,setRecords]=useState(0),[total,setTotal]=useState(0),[advanced,setAdvanced]=useState(false),[lastFilters,setLastFilters]=useState<Record<string,string>>({});
   const [show, setShow] = useState(false);
   const [edit, setEdit] = useState<any | null>(null);
   const [view, setView] = useState<any | null>(null);
@@ -23,8 +24,7 @@ export default function ManageCoupons() {
   const empty = { coupon_key: '', description: '', coupon_type: 'Percentage', status: 'Active', coupon_code: '', start_date: '', end_date: '', active_date: '', discount_value: 10, min_order: 0, usage_limit: 100, created_by: 'demo-admin' };
   const [form, setForm] = useState<any>(empty);
 
-  const load = () => { setLoading(true); apiGet('/api/coupons').then(setRows).catch(() => setToast({ msg: 'Failed to load coupons', type: 'err' })).finally(() => setLoading(false)); };
-  useEffect(load, []);
+  const load = async(filters=lastFilters,nextPage=1,nextSize=pageSize) => { setLoading(true);try{const x:any=await apiForm('/api/fetchCouponEnquiryData',{_search:true,rows:nextSize,page:nextPage,sidx:'couponKey',sord:'desc',loccode:'',couponKey:filters.coupon_key||'',desc:filters.description||'',couponCode:filters.coupon_code||'',couponType:({'Line':'1','Bill':'2'}as Record<string,string>)[filters.coupon_type]||'-1',couponStatus:({'Cancelled':'7','Confirmed':'4','Pending Confirmation':'1'}as Record<string,string>)[filters.status]||'-1',fromOrderDate:filters.fromOrderDate||'',toOrderDate:filters.toOrderDate||'',fromActiveDate:filters.fromActiveDate||'',toActiveDate:filters.toActiveDate||'',clientId:'-1',REQ_SEARCH_FLAG:true});setRows(x.gridModel||[]);setPage(x.page||nextPage);setPageSize(nextSize);setRecords(x.records||0);setTotal(x.total||0);setLastFilters(filters)}catch{setRows([]);setRecords(0);setTotal(0)}finally{setLoading(false)} };
 
   const openNew = () => { setEdit(null); setForm(empty); setErrors({}); setShow(true); };
   const openEdit = (r: any) => { setEdit(r); setForm({ ...empty, ...r }); setErrors({}); setShow(true); };
@@ -46,7 +46,7 @@ export default function ManageCoupons() {
     try {
       if (edit) await apiSend('/api/coupons', 'PUT', { id: edit.id, ...form });
       else await apiSend('/api/coupons', 'POST', form);
-      setToast({ msg: edit ? 'Coupon updated successfully' : 'Coupon created successfully', type: 'ok' }); setShow(false); load();
+      setToast({ msg: edit ? 'Coupon updated successfully' : 'Coupon created successfully', type: 'ok' }); setShow(false); void load();
     } catch { setToast({ msg: 'Save failed', type: 'err' }); } finally { setBusy(false); }
   };
 
@@ -59,7 +59,7 @@ export default function ManageCoupons() {
     { key: 'coupon_key', label: 'Coupon Key', filter: 'text', align: 'left', render: (r) => <button onClick={() => setView(r)} className="font-medium text-[#2f7fb6] hover:underline">{r.coupon_key}</button> },
     { key: 'description', label: 'Description', filter: 'text', align: 'left' },
     { key: 'coupon_type', label: 'Coupon Type', filter: 'select', options: TYPES },
-    { key: 'status', label: 'Status', filter: 'select', options: ['Active', 'Inactive'], render: (r) => <StatusPill active={r.status === 'Active'} /> },
+    { key: 'status', label: 'Status', filter: 'select', options: ['Cancelled','Confirmed','Pending Confirmation'] },
     { key: 'coupon_code', label: 'Coupon Code', filter: 'text' },
     { key: 'start_date', label: 'Start Date', filter: 'none', render: (r) => fmt(r.start_date) },
     { key: 'end_date', label: 'End Date', filter: 'none', render: (r) => fmt(r.end_date) },
@@ -73,11 +73,13 @@ export default function ManageCoupons() {
         breadcrumb={[{ label: 'Master' }, { label: 'Coupon Management' }, { label: 'Coupon Enquiry' }]}
         cols={cols} rows={rows} loading={loading}
         actions={[
-          { label: 'Advance Search', icon: SlidersHorizontal, onClick: () => setToast({ msg: 'Advance Search: filter by discount, validity, usage limit.', type: 'ok' }) },
+          { label: 'Advance Search', icon: SlidersHorizontal, onClick: () => setAdvanced(x=>!x) },
           { label: 'Add New', icon: Plus, variant: 'green', onClick: openNew },
           { label: 'Download', icon: Download, onClick: download },
         ]}
-        onRowEdit={openEdit} onRowInfo={setView}
+        actionsBeforeResetCount={1}
+        fields={advanced?[{key:'fromOrderDate',label:'Start Date'},{key:'toOrderDate',label:'End Date'},{key:'fromActiveDate',label:'Active Date From'},{key:'toActiveDate',label:'Active Date To'}]:[]}
+        onSearch={(filters,nextPage,nextSize)=>void load(filters,nextPage,nextSize)} onReset={()=>{setRows([]);setRecords(0);setTotal(0);setLastFilters({})}} remote={{page,pageSize,records,total}}
       />
 
       <Modal title={edit ? 'Edit Coupon' : 'Add New Coupon'} open={show} onClose={() => setShow(false)} wide>

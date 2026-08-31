@@ -37,7 +37,7 @@ Dedicated routes currently exist for dashboard/control tower, masters, procureme
 
 ### Generic workflow components
 
-55 menu entries resolve through `/app/m/:key` → `GenericRoute` → `GenericModule`. These screens provide schema-driven list/search/status filtering, add/edit/delete, export, and refresh behavior, but are not evidence of reference-level fidelity for every module. Their fields and downstream notes come from `src/eretail/masterSchemas.ts` and require module-by-module source verification before claiming exact replication.
+The former `/app/m/:key` schema-driven CRUD fallback was removed during the mandatory full-site re-audit because it invented shared workflows without LIVE evidence. Captured menu labels whose dedicated LIVE contract is still unaudited remain non-navigating gaps until they receive module-specific evidence and implementations.
 
 Generic workflow gaps to verify per module:
 
@@ -52,7 +52,7 @@ Generic workflow gaps to verify per module:
 
 1. **Verified/implemented dedicated workflows:** Order Allocate/Unallocate and its backend persistence/audit path; inventory operation screens and API surfaces; procurement OTB enforcement and ARS flows (subject to the evidence recorded in their existing audit documents).
 2. **Implemented but evidence-limited:** most dedicated master, procurement, returns, admin, report, and fulfillment screens. Their local behavior should not be treated as exact until inspected against the live route or documentation.
-3. **Generic approximations:** the 55 `/app/m/:key` routes above. These need a sequential evidence audit and replacement only where the reference requires behavior beyond `GenericModule`.
+3. **Unaudited route gaps:** captured labels without a dedicated implementation require sequential LIVE evidence before navigation and workflow behavior can be enabled.
 4. **Cross-module dependency risk:** SKU Master is protected. Any workflow that selects SKUs must consume `/api/skus` and must not alter SKU Master UI, route, schema, or persistence.
 
 ## Staged implementation plan
