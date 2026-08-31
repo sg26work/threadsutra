@@ -13,7 +13,7 @@ const selfParent = await request('PUT', { ...created.json, parent_hierarchy_code
 const browser = await chromium.launch({ headless: true }); const page = await browser.newPage(); const errors = [];
 page.on('pageerror', (error) => errors.push(error.message)); page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); }); page.setDefaultTimeout(12_000);
 try {
-  await page.goto(base); const captcha = (await page.locator('.font-mono').textContent()).trim(); await page.getByPlaceholder('Username').fill('org-hierarchy-e2e'); await page.getByPlaceholder('Password').fill('local-only'); await page.getByPlaceholder('Enter captcha').fill(captcha); await page.getByRole('button', { name: 'Login' }).click(); await page.waitForURL('**/app/dashboard');
+  await page.goto(base); await page.getByLabel('Login Id').fill('org-hierarchy-e2e'); await page.getByLabel('Password').fill('local-only'); await page.getByRole('button', { name: 'Login' }).click(); await page.waitForURL('**/app/dashboard');
   await page.goto(`${base}/app/m/org-hierarchy`, { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'Save', exact: true }).waitFor(); await page.getByRole('button', { name: 'Reset', exact: true }).waitFor(); await page.getByText('Organisation Hierarchy', { exact: true }).waitFor();
   for (const label of ['Hierarchy Type', 'Hierarchy Code', 'Hierarchy Name', 'Description', 'Parent Hierarchy Code', 'Org Country', 'Base Currency', 'Base Language', 'Time Zone', 'Org Weight Unit', 'Org Dimension Unit', 'Financial Start Date', 'Locale']) await page.locator('label').filter({ hasText: label }).first().waitFor();

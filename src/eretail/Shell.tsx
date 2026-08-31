@@ -29,10 +29,10 @@ function Flyout({ entry, onNav }: { entry: RailEntry; onNav: () => void }) {
             {g.title && <div className="border-b border-white/10 px-[5px] py-[3px] text-[13px] font-semibold text-slate-300">{g.title}</div>}
             <ul className="py-[2px]">
               {g.items.map((it) => (
-                <li key={it.label}>
+                <li key={it.label} className="h-[20px]">
                   <button
                     onClick={() => go(it.to)}
-                    className="flex h-[20px] w-full items-center gap-[4px] px-[5px] text-left text-[12px] text-slate-200 hover:text-[#5ec6d9]"
+                    className="ml-[20px] flex h-[13.5px] w-auto items-center gap-[5px] whitespace-nowrap px-0 text-left text-[12px] leading-[13.5px] text-slate-200 hover:text-[#5ec6d9]"
                   >
                     <ChevronRight size={11} className="shrink-0 text-[#3fb6c9]" />
                     {it.label}

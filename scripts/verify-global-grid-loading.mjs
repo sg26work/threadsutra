@@ -16,7 +16,7 @@ try {
     await priceZoneGate;
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ gridModel: [], rows: [], page: 0, total: 0, records: 0 }) });
   });
-  await active().getByRole('button', { name: 'Search', exact: true }).click();
+  await active().getByRole('main').getByRole('button', { name: 'Search', exact: true }).click();
   const blocker = page.locator('[data-global-blocking="true"]');
   await blocker.waitFor({ state: 'visible' });
   const blockerBox = await blocker.boundingBox();
@@ -35,7 +35,7 @@ try {
     await promotionGate;
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ gridModel: [], rows: [], page: 0, total: 0, records: 0 }) });
   });
-  await active().getByRole('button', { name: 'Search', exact: true }).click();
+  await active().getByRole('main').getByRole('button', { name: 'Search', exact: true }).click();
   await blocker.waitFor({ state: 'visible' });
   releasePromotions();
   await blocker.waitFor({ state: 'hidden' });

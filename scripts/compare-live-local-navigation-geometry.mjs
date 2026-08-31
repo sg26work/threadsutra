@@ -34,7 +34,7 @@ try {
       const candidate = localData.items[itemIndex];
       return { label: item.label, localLabel: candidate?.label, delta: candidate ? Object.fromEntries(Object.keys(item.rect).map((key) => [key, +(candidate.rect[key] - item.rect[key]).toFixed(2)])) : null };
     }).filter((item) => item.localLabel !== item.label || !item.delta || Object.values(item.delta).some((value) => Math.abs(value) > 2));
-    differences.push({ rail: rails[index], liveGroups: liveData.groups, localGroups: localData.groups, itemDiffs });
+    differences.push({ rail: rails[index], liveGroups: liveData.groups, localGroups: localData.groups, liveItems: process.env.DETAIL ? liveData.items.slice(0, 3) : undefined, localItems: process.env.DETAIL ? localData.items.slice(0, 3) : undefined, itemDiffs });
     await local.mouse.move(1100, 20);
   }
   const filter = process.env.RAIL;

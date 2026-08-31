@@ -47,7 +47,7 @@ try {
 
   await page.route('**/api/jsonExternalAppsSearch**', (route) => route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'External Apps feedback probe' }) }));
   await go('/app/m/external-apps', 'External Apps');
-  await active().getByRole('button', { name: 'Search', exact: true }).click();
+  await active().getByRole('main').getByRole('button', { name: 'Search', exact: true }).click();
   banner = page.getByRole('alert');
   await banner.getByText('External Apps feedback probe', { exact: true }).waitFor();
 
